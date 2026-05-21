@@ -1955,17 +1955,38 @@ function renderSalePredictions(game, allTimeLow, deals) {
 // ── Hot Deals Feed ────────────────────────────────────
 async function fetchHotDeals() {
   try {
-    const res = await fetch('https://www.cheapshark.com/api/1.0/deals?sortBy=savings&pageSize=12&onSale=1&upperPrice=60');
+    // Fetch more deals so we have enough to filter from
+    const res = await fetch('https://www.cheapshark.com/api/1.0/deals?sortBy=savings&pageSize=60&onSale=1&upperPrice=80&lowerPrice=1');
     const deals = await res.json();
     if (!deals || !deals.length) return;
+
+    // Only show deals for games in our popular list with at least 30% off
+    const popularLower = POPULAR_GAMES.map(n => n.toLowerCase());
+    const filtered = deals.filter(deal => {
+      const savings = parseFloat(deal.savings);
+      if (savings < 30) return false;
+      const titleLower = deal.title.toLowerCase();
+      return popularLower.some(p => {
+        const pWords = p.split(' ');
+        // Match if title contains at least the first meaningful word of a popular game
+        return pWords.length >= 2
+          ? titleLower.includes(pWords[0]) && titleLower.includes(pWords[1])
+          : titleLower.includes(pWords[0]);
+      });
+    });
 
     const grid = document.getElementById('hot-deals-grid');
     const sub = document.getElementById('hot-deals-sub');
     if (!grid) return;
 
-    sub.textContent = `${deals.length} deals updated just now`;
+    if (filtered.length === 0) {
+      document.getElementById('hot-deals-wrap').style.display = 'none';
+      return;
+    }
 
-    grid.innerHTML = deals.slice(0, 8).map(deal => {
+    sub.textContent = `${filtered.length} deals on popular titles`;
+
+    grid.innerHTML = filtered.slice(0, 8).map(deal => {
       const savings = Math.round(parseFloat(deal.savings));
       const price = parseFloat(deal.salePrice);
       const original = parseFloat(deal.normalPrice);
