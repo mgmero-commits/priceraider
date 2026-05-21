@@ -1,0 +1,1807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PriceRaider — Game Price Finder</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: #0d0d1a;
+    font-family: 'DM Sans', sans-serif;
+    color: #fff;
+    overflow-x: hidden;
+  }
+
+  .glow1 {
+    position: fixed; top: -20%; left: -10%;
+    width: 50vw; height: 50vw;
+    background: radial-gradient(circle, rgba(99,60,255,0.12) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+  .glow2 {
+    position: fixed; bottom: -20%; right: -10%;
+    width: 50vw; height: 50vw;
+    background: radial-gradient(circle, rgba(0,200,120,0.08) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .container {
+    position: relative; z-index: 1;
+    max-width: 680px; margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+
+  .header { text-align: center; margin-bottom: 36px; }
+  .logo-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px; }
+  .logo-icon { font-size: 32px; }
+  .logo-text {
+    font-size: 36px; font-weight: 800; letter-spacing: -1px;
+    background: linear-gradient(135deg, #ffffff 30%, #7c6dff);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .tagline { color: rgba(255,255,255,0.45); font-size: 14px; letter-spacing: 0.3px; }
+
+  .search-row { display: flex; gap: 10px; margin-bottom: 12px; }
+  .input-wrap { flex: 1; position: relative; }
+  #search-input {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px; padding: 14px 18px;
+    color: #fff; font-size: 15px; outline: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+  #search-input:focus { border-color: rgba(99,60,255,0.5); }
+
+  #suggestions-dropdown {
+    display: none;
+    position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+    background: #1a1a2e;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    overflow: hidden;
+    z-index: 100;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  #suggestions-dropdown.visible { display: block; }
+  .suggestion-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px; cursor: pointer;
+    transition: background 0.12s;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .suggestion-item:last-child { border-bottom: none; }
+  .suggestion-item:hover, .suggestion-item.active { background: rgba(99,60,255,0.15); }
+  .suggestion-empty {
+    padding: 12px 16px; font-size: 13px;
+    color: rgba(255,255,255,0.35); text-align: center; font-style: italic;
+  }
+  .suggestion-popular-tag {
+    font-size: 9px; font-weight: 700; color: #a78bfa;
+    background: rgba(99,60,255,0.15); border: 1px solid rgba(99,60,255,0.3);
+    border-radius: 4px; padding: 2px 6px; white-space: nowrap; flex-shrink: 0;
+  }
+  .suggestion-divider {
+    font-size: 9px; letter-spacing: 1.5px; font-weight: 700;
+    color: rgba(255,255,255,0.2); padding: 6px 16px 4px;
+    text-transform: uppercase; border-top: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .did-you-mean {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    background: rgba(99,60,255,0.1);
+    border: 1px solid rgba(99,60,255,0.3);
+    border-radius: 10px; padding: 12px 16px;
+    font-size: 13px; color: rgba(255,255,255,0.6);
+    margin-bottom: 10px;
+  }
+
+  .inline-suggestion {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px; margin-top: 6px;
+    font-size: 13px; color: rgba(255,255,255,0.5);
+  }
+  .inline-suggestion-btn {
+    background: rgba(99,60,255,0.2); border: 1px solid rgba(99,60,255,0.4);
+    border-radius: 6px; padding: 3px 10px;
+    color: #a78bfa; font-size: 13px; font-weight: 700;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: background 0.15s;
+  }
+  .inline-suggestion-btn:hover { background: rgba(99,60,255,0.4); }
+  .dym-btn {
+    background: rgba(99,60,255,0.3); border: 1px solid rgba(99,60,255,0.5);
+    border-radius: 6px; padding: 3px 10px;
+    color: #fff; font-size: 13px; font-weight: 700;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: background 0.15s;
+  }
+  .dym-btn:hover { background: rgba(99,60,255,0.5); }
+  .suggestion-thumb { width: 50px; height: 24px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+  .suggestion-name { font-size: 13px; font-weight: 600; flex: 1; }
+  .suggestion-price { font-size: 12px; color: rgba(255,255,255,0.4); white-space: nowrap; }
+  #search-btn {
+    background: linear-gradient(135deg, #6340ff, #4f2fe0);
+    border: none; border-radius: 12px;
+    padding: 14px 24px; color: #fff;
+    font-weight: 700; font-size: 15px;
+    cursor: pointer; white-space: nowrap;
+    font-family: 'DM Sans', sans-serif;
+    transition: opacity 0.2s;
+  }
+  #search-btn:disabled { opacity: 0.6; cursor: default; }
+
+  .error { color: #ff6b6b; font-size: 13px; text-align: center; margin: 8px 0; }
+
+  .section-label {
+    font-size: 10px; letter-spacing: 2px;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 12px; font-weight: 700;
+  }
+
+  .result-card {
+    display: flex; align-items: center; gap: 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 12px 16px;
+    cursor: pointer; width: 100%; text-align: left;
+    color: #fff; margin-bottom: 8px;
+    transition: background 0.15s;
+  }
+  .result-card:hover { background: rgba(255,255,255,0.08); }
+  .result-thumb { width: 60px; height: 28px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+  .thumb-placeholder {
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px; flex-shrink: 0;
+    background: rgba(99,60,255,0.2);
+    color: rgba(255,255,255,0.5);
+    font-weight: 800; font-size: 13px;
+    letter-spacing: 0.5px;
+  }
+  .thumb-placeholder.sm { width: 60px; height: 28px; font-size: 11px; }
+  .thumb-placeholder.xs { width: 50px; height: 24px; font-size: 10px; }
+  .thumb-placeholder.lg { width: 90px; height: 42px; font-size: 14px; }
+  .result-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .result-name { font-size: 14px; font-weight: 600; }
+  .result-price { font-size: 12px; color: rgba(255,255,255,0.45); }
+  .result-arrow { font-size: 20px; color: rgba(255,255,255,0.3); }
+
+  .back-btn {
+    background: none; border: none;
+    color: rgba(255,255,255,0.45);
+    font-size: 13px; cursor: pointer;
+    padding: 0 0 16px 0; display: block;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .game-header {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 24px; padding: 16px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .game-thumb { width: 90px; height: 42px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+  .game-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .game-subtitle { font-size: 13px; color: rgba(255,255,255,0.5); }
+  .best-price { color: #00e676; font-weight: 700; }
+  .retail-price { color: rgba(255,255,255,0.3); text-decoration: line-through; font-size: 12px; }
+
+  .deal-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; border-radius: 12px;
+    border: 1px solid; text-decoration: none;
+    color: #fff; margin-bottom: 8px;
+    transition: opacity 0.15s;
+  }
+  .deal-row:hover { opacity: 0.85; }
+  .store-tag {
+    font-size: 11px; font-weight: 700;
+    padding: 4px 10px; border-radius: 6px;
+    color: #fff; white-space: nowrap;
+    flex-shrink: 0; min-width: 90px; text-align: center;
+  }
+  .deal-meta { flex: 1; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .best-badge {
+    font-size: 9px; letter-spacing: 1.5px; font-weight: 800;
+    color: #00e676; background: rgba(0,230,118,0.1);
+    border: 1px solid rgba(0,230,118,0.3);
+    border-radius: 4px; padding: 2px 6px;
+  }
+  .savings-badge {
+    font-size: 9px; letter-spacing: 1px; font-weight: 700;
+    border: 1px solid; border-radius: 4px; padding: 2px 6px;
+  }
+  .price-block { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
+  .strike-price { font-size: 11px; color: rgba(255,255,255,0.3); text-decoration: line-through; }
+  .deal-price { font-size: 16px; font-weight: 800; }
+  .visit-btn { font-size: 12px; color: rgba(255,255,255,0.35); flex-shrink: 0; margin-left: 4px; }
+
+  .hints { margin-top: 48px; text-align: center; }
+  .hint-label { font-size: 11px; letter-spacing: 2px; color: rgba(255,255,255,0.25); margin-bottom: 12px; text-transform: uppercase; }
+  .hint-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .hint-chip {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px; padding: 7px 14px;
+    color: rgba(255,255,255,0.6);
+    font-size: 13px; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: background 0.15s;
+  }
+  .hint-chip:hover { background: rgba(255,255,255,0.1); }
+
+  .loading-text { color: rgba(255,255,255,0.4); text-align: center; font-size: 14px; padding: 20px 0; }
+  .footer { text-align: center; font-size: 11px; color: rgba(255,255,255,0.2); margin-top: 48px; letter-spacing: 0.5px; }
+
+  #results-section, #deals-section { display: none; }
+
+  .also-search { margin-top: 28px; }
+  .also-search-label {
+    font-size: 10px; letter-spacing: 2px; font-weight: 700;
+    color: rgba(255,255,255,0.3); margin-bottom: 10px;
+  }
+  .also-search-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .ext-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.75);
+    font-size: 12px; font-weight: 600;
+    cursor: pointer; text-decoration: none;
+    font-family: 'DM Sans', sans-serif;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .ext-btn:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.2); }
+  .ext-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .ext-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 24px 0; }
+  .kinguin-note {
+    font-size: 11px; color: rgba(255,255,255,0.3);
+    margin-top: 8px; line-height: 1.5;
+  }
+  .kinguin-note span { color: #f0b429; }
+
+  .no-results-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px; padding: 24px;
+    text-align: center; margin-top: 8px;
+  }
+  .no-results-icon { font-size: 32px; margin-bottom: 10px; }
+  .no-results-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .no-results-sub { font-size: 13px; color: rgba(255,255,255,0.45); margin-bottom: 18px; line-height: 1.5; }
+  .console-btns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .console-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
+    color: #fff; font-size: 13px; font-weight: 600;
+    text-decoration: none; font-family: 'DM Sans', sans-serif;
+    transition: background 0.15s;
+  }
+  .console-btn:hover { background: rgba(255,255,255,0.1); }
+
+  /* Nav tabs */
+  .nav-tabs { display: flex; gap: 8px; justify-content: center; margin-top: 18px; }
+  .nav-tab {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px; padding: 8px 20px; color: rgba(255,255,255,0.5);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .nav-tab.active { background: rgba(99,60,255,0.25); border-color: rgba(99,60,255,0.5); color: #fff; }
+  .nav-tab:hover:not(.active) { background: rgba(255,255,255,0.08); }
+  .wl-count {
+    background: #6340ff; color: #fff; font-size: 10px; font-weight: 800;
+    padding: 1px 6px; border-radius: 10px; min-width: 18px; text-align: center;
+  }
+
+  /* Wishlist */
+  .wl-empty { text-align: center; padding: 60px 20px; color: rgba(255,255,255,0.3); }
+  .wl-empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .wl-empty-text { font-size: 15px; }
+  .wl-card {
+    display: flex; align-items: center; gap: 14px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+  }
+  .wl-info { flex: 1; }
+  .wl-name { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .wl-meta { font-size: 12px; color: rgba(255,255,255,0.4); }
+  .wl-meta span { color: #00e676; font-weight: 600; }
+  .wl-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .wl-btn {
+    border-radius: 8px; padding: 7px 12px; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; border: 1px solid; transition: opacity 0.15s;
+  }
+  .wl-btn:hover { opacity: 0.8; }
+  .wl-btn-alert { background: rgba(99,60,255,0.2); border-color: rgba(99,60,255,0.4); color: #a78bfa; }
+  .wl-btn-view { background: rgba(0,230,118,0.1); border-color: rgba(0,230,118,0.3); color: #00e676; }
+  .wl-btn-remove { background: rgba(255,80,80,0.1); border-color: rgba(255,80,80,0.3); color: #ff6b6b; }
+  .wl-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .wl-title { font-size: 11px; letter-spacing: 2px; color: rgba(255,255,255,0.3); font-weight: 700; }
+  .wl-clear { background: none; border: none; color: rgba(255,80,80,0.5); font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .wl-clear:hover { color: #ff6b6b; }
+  .wl-add-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.15);
+    border-radius: 10px; padding: 9px 14px; color: rgba(255,255,255,0.4);
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: all 0.15s; flex-shrink: 0;
+  }
+  .wl-add-btn:hover { background: rgba(99,60,255,0.15); border-color: rgba(99,60,255,0.3); color: #a78bfa; }
+  .wl-added { background: rgba(0,230,118,0.1) !important; border-color: rgba(0,230,118,0.3) !important; color: #00e676 !important; border-style: solid !important; }
+
+  /* Modal */
+  #modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    z-index: 1000; display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  #alert-modal {
+    background: #1a1a2e; border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px; padding: 28px; width: 100%; max-width: 400px;
+  }
+  #alert-modal h3 { font-size: 17px; font-weight: 800; margin-bottom: 4px; }
+  .modal-sub { font-size: 13px; color: rgba(255,255,255,0.4); margin-bottom: 20px; }
+  .modal-field { margin-bottom: 16px; }
+  .modal-field label { display: block; font-size: 11px; letter-spacing: 1px; color: rgba(255,255,255,0.4); font-weight: 700; margin-bottom: 6px; text-transform: uppercase; }
+  .modal-field input {
+    width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px; padding: 12px 14px; color: #fff; font-size: 14px;
+    outline: none; font-family: 'DM Sans', sans-serif;
+  }
+  .modal-field input:focus { border-color: rgba(99,60,255,0.5); }
+  .price-input-wrap { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 0 14px; }
+  .price-input-wrap span { color: rgba(255,255,255,0.4); font-size: 15px; }
+  .price-input-wrap input { background: none; border: none; padding: 12px 0; flex: 1; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-cancel { flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 12px; color: rgba(255,255,255,0.6); font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .modal-confirm { flex: 2; background: linear-gradient(135deg, #6340ff, #4f2fe0); border: none; border-radius: 10px; padding: 12px; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .modal-note { font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 12px; text-align: center; line-height: 1.5; }
+  .modal-historical { font-size: 12px; color: #a78bfa; margin-top: 8px; text-align: center; line-height: 1.5; background: rgba(99,60,255,0.1); border-radius: 8px; padding: 8px 12px; }
+
+  /* Price history chart */
+  .chart-wrap { position: relative; width: 100%; height: 140px; margin-bottom: 8px; }
+  .chart-svg { width: 100%; height: 100%; overflow: visible; }
+  .chart-meta { display: flex; justify-content: space-between; font-size: 11px; color: rgba(255,255,255,0.3); margin-top: 4px; }
+  .chart-stat { text-align: center; }
+  .chart-stat-val { font-size: 14px; font-weight: 700; color: #fff; }
+  .chart-stat-label { font-size: 10px; color: rgba(255,255,255,0.3); letter-spacing: 1px; text-transform: uppercase; }
+  .chart-stats-row { display: flex; gap: 8px; margin-top: 12px; }
+  .chart-stat-card { flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 10px; text-align: center; }
+  .chart-tooltip {
+    position: absolute; background: #1a1a2e; border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px; padding: 6px 10px; font-size: 12px; pointer-events: none;
+    white-space: nowrap; display: none; z-index: 10;
+  }
+
+  /* Deal quality badges */
+  .quality-badge { font-size: 9px; font-weight: 700; border-radius: 4px; padding: 2px 6px; letter-spacing: 0.5px; border: 1px solid; }
+  .quality-atl { color: #00e676; border-color: rgba(0,230,118,0.4); background: rgba(0,230,118,0.1); }
+  .quality-great { color: #a78bfa; border-color: rgba(167,139,250,0.4); background: rgba(167,139,250,0.1); }
+  .quality-ok { color: #f0b429; border-color: rgba(240,180,41,0.4); background: rgba(240,180,41,0.1); }
+  .quality-wait { color: rgba(255,255,255,0.35); border-color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.04); }
+
+  /* Sale predictions */
+  .prediction-card {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px; padding: 16px; margin-bottom: 8px;
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .prediction-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+  .prediction-body { flex: 1; }
+  .prediction-title { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+  .prediction-sub { font-size: 12px; color: rgba(255,255,255,0.4); line-height: 1.5; }
+  .prediction-badge {
+    font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px;
+    border: 1px solid; white-space: nowrap; flex-shrink: 0; align-self: center;
+  }
+  .badge-soon { color: #00e676; border-color: rgba(0,230,118,0.3); background: rgba(0,230,118,0.1); }
+  .badge-months { color: #f0b429; border-color: rgba(240,180,41,0.3); background: rgba(240,180,41,0.1); }
+  .badge-far { color: rgba(255,255,255,0.4); border-color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.04); }
+  .prediction-disclaimer { font-size: 10px; color: rgba(255,255,255,0.2); margin-top: 10px; text-align: center; line-height: 1.5; }
+
+  .limited-warning {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    font-size: 12px; color: #f0b429;
+    background: rgba(240,180,41,0.08); border: 1px solid rgba(240,180,41,0.2);
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 10px;
+  }
+  .limited-steam-link {
+    font-size: 12px; font-weight: 700; color: #fff;
+    background: rgba(27,40,56,0.8); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px; padding: 4px 10px; text-decoration: none;
+    white-space: nowrap; flex-shrink: 0;
+    font-family: 'DM Sans', sans-serif; transition: background 0.15s;
+  }
+  .limited-steam-link:hover { background: rgba(27,40,56,1); }
+  .steam-prominent-btn {
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(27,40,56,0.6); border: 1px solid rgba(27,40,56,0.9);
+    border-radius: 10px; padding: 12px 20px; margin-bottom: 12px;
+    color: #fff; font-size: 13px; font-weight: 700;
+    text-decoration: none; font-family: 'DM Sans', sans-serif;
+    transition: background 0.15s;
+  }
+  .steam-prominent-btn:hover { background: rgba(27,40,56,0.9); }
+</style>
+</head>
+<body>
+
+<div class="glow1"></div>
+<div class="glow2"></div>
+
+<div class="container">
+  <div class="header">
+    <div class="logo-row">
+      <img src="https://i.imgur.com/1r2GwOU.png" alt="PriceRaider" style="height:220px;object-fit:contain;mix-blend-mode:lighten;" />
+    </div>
+    <p class="tagline">Find the cheapest price across every PC game store</p>
+    <div class="nav-tabs">
+      <button class="nav-tab active" id="tab-search" onclick="switchTab('search')">🔍 Search</button>
+      <button class="nav-tab" id="tab-wishlist" onclick="switchTab('wishlist')">❤️ Wishlist <span id="wishlist-count" class="wl-count" style="display:none">0</span></button>
+    </div>
+  </div>
+
+  <div class="search-row">
+    <div class="input-wrap">
+      <input id="search-input" type="text" placeholder="Search for a game..." autocomplete="off" />
+      <div id="suggestions-dropdown"></div>
+    </div>
+    <button id="search-btn" onclick="hideDropdown(); searchGames()">Search</button>
+  </div>
+  <div id="inline-suggestion" style="display:none" class="inline-suggestion"></div>
+  <div id="home-btn-wrap" style="display:none;margin-bottom:8px;">
+    <button onclick="goHome()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:10px 20px;color:rgba(255,255,255,0.7);font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:8px;transition:background 0.15s;">
+      ⌂ Home
+    </button>
+  </div>
+
+  <div id="error-msg"></div>
+  <div id="no-results-section" style="display:none"></div>
+
+  <!-- Search Results -->
+  <div id="results-section" style="display:none">
+    <p class="section-label">SELECT A GAME</p>
+    <div id="results-list"></div>
+  </div>
+
+  <!-- Deals View -->
+  <div id="deals-section" style="display:none">
+    <button class="back-btn" onclick="goBack()">← Back to results</button>
+    <div id="game-header"></div>
+    <div id="deals-list"></div>
+    <div id="price-history-section" style="display:none">
+      <div class="ext-divider"></div>
+      <p class="section-label">PRICE HISTORY</p>
+      <div id="price-history-chart"></div>
+    </div>
+    <div id="sale-prediction-section" style="display:none">
+      <div class="ext-divider"></div>
+      <p class="section-label">🔮 SALE PREDICTIONS</p>
+      <div id="sale-prediction-content"></div>
+    </div>
+    <div id="also-search-section" style="display:none"></div>
+  </div>
+
+  <!-- Hints -->
+  <div class="hints" id="hints-section">
+    <p class="hint-label">Try searching for</p>
+    <div class="hint-row">
+      <button class="hint-chip" onclick="setQuery('Elden Ring')">Elden Ring</button>
+      <button class="hint-chip" onclick="setQuery('Cyberpunk 2077')">Cyberpunk 2077</button>
+      <button class="hint-chip" onclick="setQuery('Hades')">Hades</button>
+      <button class="hint-chip" onclick="setQuery('GTA V')">GTA V</button>
+      <button class="hint-chip" onclick="setQuery(`Baldur's Gate 3`)">Baldur's Gate 3</button>
+    </div>
+  </div>
+
+  <p class="footer">Powered by CheapShark · Prices update in real time</p>
+</div>
+
+<!-- Wishlist Section -->
+<div class="container" id="wishlist-section" style="display:none">
+  <div id="wishlist-list"></div>
+  <p class="footer">Powered by CheapShark · Prices update in real time</p>
+</div>
+
+<!-- Alert Modal -->
+<div id="modal-overlay" style="display:none" onclick="closeModal()">
+  <div id="alert-modal" onclick="event.stopPropagation()">
+    <h3 id="modal-title">Set Price Alert</h3>
+    <p id="modal-subtitle" class="modal-sub"></p>
+    <div class="modal-field">
+      <label>Your email</label>
+      <input id="modal-email" type="email" placeholder="you@email.com" />
+    </div>
+    <div class="modal-field">
+      <label>Alert me when price drops below</label>
+      <div class="price-input-wrap">
+        <span>$</span>
+        <input id="modal-price" type="number" min="0" step="0.01" placeholder="e.g. 19.99" />
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-confirm" onclick="confirmAlert()">Set Alert ✓</button>
+    </div>
+    <p class="modal-note">CheapShark will email you when this game hits your target price.</p>
+    <p id="modal-historical" class="modal-historical" style="display:none"></p>
+  </div>
+</div>
+
+<script>
+const STORES = {
+  1:"Steam",2:"GamersGate",3:"GreenManGaming",6:"Fanatical",
+  7:"Wingamestore",8:"GameBillet",11:"Humble Store",13:"GOG",
+  15:"Voidu",21:"2Game",23:"WinGameStore",25:"Gamesplanet",
+  27:"Games Republic",28:"Indie Gala",29:"Blizzard",
+  35:"IndieGameStand",36:"Noctre",37:"DLGamer"
+};
+
+const STORE_COLORS = {
+  "Steam":"#1b2838","Fanatical":"#e4202d","Humble Store":"#cc2929",
+  "GOG":"#6b1fff","GreenManGaming":"#00a651","GamersGate":"#e87722"
+};
+
+const getColor = (name) => STORE_COLORS[name] || "#2a2a3e";
+const fmt = (p) => parseFloat(p) === 0 ? "FREE" : `$${parseFloat(p).toFixed(2)}`;
+
+function thumbHTML(url, name, size) {
+  const initials = name ? name.substring(0, 3).toUpperCase() : '?';
+  if (url) {
+    return `<img class="game-img-thumb" data-initials="${initials}" data-size="${size}" src="${url}" alt="" />`;
+  }
+  return `<div class="thumb-placeholder ${size}">${initials}</div>`;
+}
+
+function handleThumbErrors() {
+  document.querySelectorAll('.game-img-thumb').forEach(img => {
+    img.onload = () => {
+      img.style.cssText = `width:${img.dataset.size==='lg'?90:img.dataset.size==='sm'?60:50}px;height:${img.dataset.size==='lg'?42:img.dataset.size==='sm'?28:24}px;object-fit:cover;border-radius:6px;flex-shrink:0;`;
+    };
+    img.onerror = () => {
+      const ph = document.createElement('div');
+      ph.className = `thumb-placeholder ${img.dataset.size}`;
+      ph.textContent = img.dataset.initials;
+      img.replaceWith(ph);
+    };
+    // Trigger for already-cached images
+    if (img.complete && img.naturalWidth === 0) img.onerror();
+    if (img.complete && img.naturalWidth > 0) img.onload();
+  });
+}
+
+let lastResults = [];
+let debounceTimer = null;
+
+let activeIndex = -1;
+
+function showDropdown(games, query) {
+  activeIndex = -1;
+  const dd = document.getElementById('suggestions-dropdown');
+
+  // Find popular games matching query locally
+  const q = (query || document.getElementById('search-input').value || '').toLowerCase();
+  const localMatches = q.length >= 2
+    ? POPULAR_GAMES.filter(name => name.toLowerCase().includes(q)).slice(0, 3)
+    : [];
+
+  // Remove api results that duplicate local matches
+  const localLower = new Set(localMatches.map(n => n.toLowerCase()));
+  const apiOnly = games.filter(g => !localLower.has(g.external.toLowerCase()));
+
+  if (!localMatches.length && !apiOnly.length) {
+    dd.innerHTML = `<div class="suggestion-empty">No matches found — press Search to try anyway</div>`;
+    dd.classList.add('visible');
+    return;
+  }
+
+  let html = '';
+
+  // Local popular matches first with star badge
+  if (localMatches.length) {
+    html += localMatches.map((name, i) => {
+      const initials = name.substring(0, 3).toUpperCase();
+      return `<div class="suggestion-item suggestion-popular" data-index="${i}" onclick="searchGames('${name.replace(/'/g,"\\'")}')">
+        <div class="thumb-placeholder xs" style="background:rgba(99,60,255,0.25)">${initials}</div>
+        <span class="suggestion-name">${name}</span>
+        <span class="suggestion-popular-tag">⭐ Popular</span>
+      </div>`;
+    }).join('');
+    if (apiOnly.length) html += `<div class="suggestion-divider">Also found</div>`;
+  }
+
+  // API results below
+  html += apiOnly.slice(0, 5).map((g, i) => {
+    const idx = localMatches.length + i;
+    const initials = g.external ? g.external.substring(0, 3).toUpperCase() : '?';
+    const imgHTML = g.thumb
+      ? `<img class="game-img-thumb suggestion-thumb" data-initials="${initials}" data-size="xs" src="${g.thumb}" alt="" />`
+      : `<div class="thumb-placeholder xs">${initials}</div>`;
+    const price = g.cheapest ? `<span class="suggestion-price">from ${fmt(g.cheapest)}</span>` : '';
+    const safeName = g.external.replace(/'/g, "\\'");
+    return `<div class="suggestion-item" data-index="${idx}" onclick="pickSuggestion(${g.gameID}, '${safeName}')">${imgHTML}<span class="suggestion-name">${g.external}</span>${price}</div>`;
+  }).join('');
+
+  dd.innerHTML = html;
+  dd.classList.add('visible');
+  handleThumbErrors();
+}
+
+function setActiveIndex(index) {
+  const items = document.querySelectorAll('.suggestion-item');
+  items.forEach(el => el.classList.remove('active'));
+  if (index >= 0 && index < items.length) {
+    items[index].classList.add('active');
+    items[index].scrollIntoView({ block: 'nearest' });
+    activeIndex = index;
+  } else {
+    activeIndex = -1;
+  }
+}
+
+function hideDropdown() {
+  document.getElementById('suggestions-dropdown').classList.remove('visible');
+}
+
+async function pickSuggestion(gameID, name) {
+  hideDropdown();
+  document.getElementById('search-input').value = name;
+  const game = lastResults.find(g => g.gameID == gameID) || { gameID, external: name };
+  await fetchDeals(game);
+}
+
+// Popular games list — fallback if live fetch fails
+const POPULAR_GAMES_FALLBACK = [
+  'Cyberpunk 2077','Elden Ring','GTA V','Red Dead Redemption 2','Baldur\'s Gate 3',
+  'The Witcher 3','Hades','Hades II','Hollow Knight','Stardew Valley',
+  'No Man\'s Sky','Valheim','Terraria','Minecraft','Among Us',
+  'Sekiro','Dark Souls III','Dark Souls Remastered','Elden Ring Nightreign',
+  'Monster Hunter World','Monster Hunter Rise','Monster Hunter Wilds','Devil May Cry 5',
+  'Resident Evil 4','Resident Evil Village','Dead Space',
+  'Doom Eternal','Doom 2016','Fallout 4','Fallout New Vegas',
+  'Skyrim','Oblivion','Oblivion Remastered','Mass Effect Legendary Edition',
+  'Disco Elysium','Divinity Original Sin 2','Pathfinder Wrath',
+  'Persona 4 Golden','Persona 5 Royal','Like a Dragon',
+  'Kingdom Come Deliverance','Kingdom Come Deliverance II',
+  'Death Stranding','Control','Alan Wake 2','Alan Wake',
+  'Dota 2','Counter Strike 2','Team Fortress 2','Left 4 Dead 2',
+  'Portal 2','Half Life Alyx','Deep Rock Galactic','Satisfactory',
+  'Factorio','RimWorld','Dwarf Fortress','Cities Skylines','Cities Skylines II',
+  'Total War Warhammer 3','Civilization VI','Civilization VII','XCOM 2',
+  'Crusader Kings 3','Victoria 3','Stellaris','Hearts of Iron IV',
+  'Apex Legends','Fortnite','Warframe','Path of Exile','Path of Exile 2',
+  'Diablo IV','Diablo III','Last Epoch','Torchlight Infinite',
+  'Borderlands 3','Tiny Tina Wonderlands',
+  'Rocket League','Fall Guys','Phasmophobia',
+  'Sons of the Forest','The Forest','Subnautica','Subnautica Below Zero',
+  'It Takes Two','A Way Out','Overcooked 2',
+  'Cuphead','Ori and the Will of the Wisps','Celeste','Shovel Knight',
+  'Doom','Quake','Prey','Dishonored 2',
+  'Hitman World of Assassination','Tomb Raider','Shadow of the Tomb Raider',
+  'Assassin\'s Creed Odyssey','Assassin\'s Creed Valhalla','Assassin\'s Creed Mirage','Assassin\'s Creed Shadows',
+  'Watch Dogs Legion','Far Cry 6','Ghost Recon Breakpoint',
+  'Rainbow Six Siege','For Honor','The Division 2',
+  'Batman Arkham Knight','Batman Arkham City','Batman Arkham Origins',
+  'Marvel\'s Spider-Man','Marvel\'s Spider-Man Miles Morales',
+  'Star Wars Jedi Survivor','Star Wars Jedi Fallen Order','Star Wars Battlefront II',
+  'Need for Speed Heat','Need for Speed Unbound','Forza Horizon 5',
+  'F1 24','EA Sports FC 25','NBA 2K25',
+  'Call of Duty Modern Warfare III','Call of Duty Warzone',
+  'Battlefield V','Battlefield 2042',
+  'Metal Gear Solid V','Horizon Zero Dawn','Death Stranding Director\'s Cut',
+  'Ghostwire Tokyo','Deathloop','Returnal',
+  'Final Fantasy XIV','Final Fantasy XVI','Final Fantasy VII Remake','Final Fantasy VII Rebirth',
+  'Dragon Age Inquisition','Dragon Age Veilguard','Mass Effect Andromeda',
+  'Palworld','Enshrouded','Nightingale',
+  'Helldivers 2','Warhammer 40000 Space Marine 2','Black Myth Wukong',
+  'Hogwarts Legacy','Star Wars Outlaws','Avatar Frontiers of Pandora',
+  'The Last of Us','God of War','Ghost of Tsushima',
+  'Lies of P','Lords of the Fallen','Remnant II',
+  'Dave the Diver','Vampire Survivors','Cult of the Lamb',
+  'Sifu','Ghostrunner 2','Turbo Overkill',
+];
+
+let POPULAR_GAMES = [...POPULAR_GAMES_FALLBACK];
+// Start fetching live data immediately — don't wait for user to type
+fetchLiveTopSellers();
+
+// Fetch live top sellers from SteamSpy on startup
+async function fetchLiveTopSellers() {
+  try {
+    const res = await fetch('https://steamspy.com/api.php?request=top100in2weeks');
+    const data = await res.json();
+    const liveNames = Object.values(data)
+      .sort((a, b) => (b.positive + b.negative) - (a.positive + a.negative))
+      .map(g => g.name)
+      .filter(Boolean);
+    if (liveNames.length > 20) {
+      // Merge: live names first, then fallback for anything not in live list
+      const liveSet = new Set(liveNames.map(n => n.toLowerCase()));
+      const fallbackOnly = POPULAR_GAMES_FALLBACK.filter(n => !liveSet.has(n.toLowerCase()));
+      POPULAR_GAMES = [...liveNames, ...fallbackOnly];
+      console.log(`PriceRaider: Loaded ${liveNames.length} live top sellers from SteamSpy`);
+    }
+  } catch {
+    console.log('PriceRaider: Using fallback popular games list');
+  }
+}
+
+function getPopularMatches(query) {
+  const q = query.toLowerCase();
+  return POPULAR_GAMES.filter(name => name.toLowerCase().includes(q));
+}
+
+function mergeWithPopular(apiResults, query) {
+  const popularMatches = getPopularMatches(query);
+  if (!popularMatches.length) return apiResults;
+
+  // Find api results that match popular games and move them to front
+  const boosted = [];
+  const rest = [];
+
+  apiResults.forEach(game => {
+    const nameLower = game.external.toLowerCase();
+    const isPopular = popularMatches.some(p => {
+      const pLower = p.toLowerCase();
+      return nameLower.includes(pLower.split(' ')[0]) &&
+        pLower.split(' ').every(word => nameLower.includes(word));
+    });
+    if (isPopular) boosted.push(game);
+    else rest.push(game);
+  });
+
+  // Sort boosted by how early in the popular list they appear
+  boosted.sort((a, b) => {
+    const aIdx = popularMatches.findIndex(p => a.external.toLowerCase().includes(p.split(' ')[0].toLowerCase()));
+    const bIdx = popularMatches.findIndex(p => b.external.toLowerCase().includes(p.split(' ')[0].toLowerCase()));
+    return aIdx - bIdx;
+  });
+
+  return [...boosted, ...rest];
+}
+
+function setQuery(q) {
+  document.getElementById('search-input').value = q;
+  searchGames();
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.innerHTML = msg ? `<p class="error">${msg}</p>` : '';
+}
+
+// Levenshtein distance — same algorithm Google's spell check is built on
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({length: m + 1}, (_, i) =>
+    Array.from({length: n + 1}, (_, j) => i === 0 ? j : j === 0 ? i : 0)
+  );
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i-1] === b[j-1]
+        ? dp[i-1][j-1]
+        : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[m][n];
+}
+
+// Score a query against a popular game name
+// Returns 0-1 where 1 is perfect match
+// Check if two strings are transpositions of each other (same chars, different order)
+function isTransposition(a, b) {
+  if (Math.abs(a.length - b.length) > 1) return false;
+  return a.split('').sort().join('') === b.split('').sort().join('');
+}
+
+function matchScore(query, gameName) {
+  const q = query.toLowerCase().trim();
+  const g = gameName.toLowerCase().trim();
+  if (q === g) return 1;
+  if (g.includes(q)) return 0.95;
+  const qWords = q.split(/\s+/);
+  const gWords = g.split(/\s+/);
+  let wordScore = 0, matched = 0;
+  for (const qw of qWords) {
+    let bestNorm = 0;
+    for (const gw of gWords) {
+      const dist = levenshtein(qw, gw);
+      const maxLen = Math.max(qw.length, gw.length);
+      let normalized = 1 - dist / maxLen;
+      // Boost transpositions (rign/ring, hased/hades etc)
+      if (isTransposition(qw, gw)) normalized = Math.max(normalized, 0.85);
+      const maxDist = qw.length <= 5 ? 1 : 2;
+      if ((dist <= maxDist || normalized > 0.5) && normalized > bestNorm) bestNorm = normalized;
+    }
+    if (bestNorm > 0) { wordScore += bestNorm; matched++; }
+  }
+  if (matched === 0) return 0;
+  const avgWordScore = wordScore / qWords.length;
+  const extraWords = Math.max(0, gWords.length - qWords.length);
+  const lengthPenalty = extraWords * 0.04;
+  return Math.min(avgWordScore + (matched / qWords.length) * 0.1 - lengthPenalty, 0.99);
+}
+
+function findPopularMatch(query) {
+  const q = query.toLowerCase().trim();
+  if (q.length < 3) return null;
+
+  let best = null, bestScore = 0;
+
+  for (const name of POPULAR_GAMES) {
+    const score = matchScore(q, name);
+    if (score > 0.72 && score > bestScore) {
+      bestScore = score;
+      best = name;
+    }
+  }
+
+  // Don't suggest if it's basically the same as what was typed
+  if (best && best.toLowerCase() === q) return null;
+
+  return best;
+}
+
+async function tryAlternativeQueries(query) {
+  const attempts = [];
+
+  // 1. Check popular games list first for a fuzzy match
+  const popularMatch = findPopularMatch(query);
+  if (popularMatch && popularMatch.toLowerCase() !== query.toLowerCase()) {
+    try {
+      const res = await fetch(`https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(popularMatch)}&limit=10`);
+      const data = await res.json();
+      if (data.length > 0) return { suggestion: popularMatch, results: data };
+    } catch { /* continue */ }
+  }
+
+  // 2. Simplified version (strip special chars)
+  const simplified = query.replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (simplified.toLowerCase() !== query.toLowerCase()) attempts.push(simplified);
+
+  // 3. First two words only
+  const words = query.trim().split(/\s+/);
+  if (words.length > 1) attempts.push(words.slice(0, -1).join(' '));
+
+  // 4. First word only
+  if (words.length > 2) attempts.push(words[0]);
+
+  for (const attempt of attempts) {
+    if (!attempt || attempt.length < 2) continue;
+    try {
+      const res = await fetch(`https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(attempt)}&limit=10`);
+      const data = await res.json();
+      if (data.length > 0) return { suggestion: attempt, results: data };
+    } catch { continue; }
+  }
+  return null;
+}
+
+// Acronym expansion map
+const ACRONYMS = {
+  'gta v': 'Grand Theft Auto V',
+  'gta 5': 'Grand Theft Auto V',
+  'gta iv': 'Grand Theft Auto IV',
+  'gta 4': 'Grand Theft Auto IV',
+  'gta sa': 'Grand Theft Auto San Andreas',
+  'gta vc': 'Grand Theft Auto Vice City',
+  'gta': 'Grand Theft Auto',
+  'rdr2': 'Red Dead Redemption 2',
+  'rdr': 'Red Dead Redemption',
+  'cod': 'Call of Duty',
+  'mw3': 'Call of Duty Modern Warfare III',
+  'mw2': 'Call of Duty Modern Warfare II',
+  'bo6': 'Call of Duty Black Ops 6',
+  'bo3': 'Call of Duty Black Ops 3',
+  'cs2': 'Counter Strike 2',
+  'csgo': 'Counter Strike Global Offensive',
+  'ds3': 'Dark Souls III',
+  'ds1': 'Dark Souls Remastered',
+  'er': 'Elden Ring',
+  'bg3': 'Baldur\'s Gate 3',
+  'ac': 'Assassin\'s Creed',
+  'ac odyssey': 'Assassin\'s Creed Odyssey',
+  'ac valhalla': 'Assassin\'s Creed Valhalla',
+  'ac mirage': 'Assassin\'s Creed Mirage',
+  'ff7': 'Final Fantasy VII Remake',
+  'ff14': 'Final Fantasy XIV',
+  'ff16': 'Final Fantasy XVI',
+  'kcd': 'Kingdom Come Deliverance',
+  'kcd2': 'Kingdom Come Deliverance II',
+  'nms': 'No Man\'s Sky',
+  'rl': 'Rocket League',
+  'tf2': 'Team Fortress 2',
+  'l4d2': 'Left 4 Dead 2',
+  'dmc5': 'Devil May Cry 5',
+  're4': 'Resident Evil 4',
+  're8': 'Resident Evil Village',
+  'mhw': 'Monster Hunter World',
+  'mhr': 'Monster Hunter Rise',
+  'sotf': 'Sons of the Forest',
+  'hzd': 'Horizon Zero Dawn',
+  'tlou': 'The Last of Us',
+  'gow': 'God of War',
+  'got': 'Ghost of Tsushima',
+  'w3': 'The Witcher 3',
+  'p5r': 'Persona 5 Royal',
+  'p4g': 'Persona 4 Golden',
+  'div2': 'Divinity Original Sin 2',
+  'dos2': 'Divinity Original Sin 2',
+  'hoi4': 'Hearts of Iron IV',
+  'ck3': 'Crusader Kings 3',
+  'poe': 'Path of Exile',
+  'poe2': 'Path of Exile 2',
+};
+
+function expandAcronym(query) {
+  const q = query.toLowerCase().trim();
+  return ACRONYMS[q] || null;
+}
+
+async function searchGames(overrideQuery) {
+  hideDropdown();
+  clearTimeout(debounceTimer);
+  const rawQuery = overrideQuery || document.getElementById('search-input').value.trim();
+  // Expand acronym if matched
+  const expanded = expandAcronym(rawQuery);
+  const query = expanded || rawQuery;
+  if (expanded) document.getElementById('search-input').value = expanded;
+  console.log('searchGames called, query:', query);
+  if (!query) return;
+
+  document.getElementById('inline-suggestion').style.display = 'none';
+
+  const btn = document.getElementById('search-btn');
+  btn.disabled = true;
+  btn.textContent = '...';
+  showError('');
+  document.getElementById('results-section').style.display = 'none';
+  document.getElementById('deals-section').style.display = 'none';
+  document.getElementById('hints-section').style.display = 'none';
+  document.getElementById('no-results-section').style.display = 'none';
+
+  try {
+    console.log('Fetching from CheapShark...');
+    const res = await fetch(`https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(query)}&limit=10`);
+    console.log('Response status:', res.status);
+    const data = await res.json();
+    console.log('Data received:', data);
+    lastResults = data;
+
+    if (data.length === 0) {
+      const alt = await tryAlternativeQueries(query);
+      if (alt) {
+        lastResults = alt.results;
+        showNoResults(query, alt.suggestion, alt.results);
+      } else {
+        showNoResults(query, null, []);
+      }
+    } else {
+      renderResults(data);
+    }
+  } catch(e) {
+    console.error('Fetch error:', e);
+    showError('Something went wrong. Check your connection and try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Search';
+  }
+}
+
+function acceptSuggestion(suggestion) {
+  document.getElementById('search-input').value = suggestion;
+  searchGames(suggestion);
+}
+
+function showNoResults(query, suggestion, suggestionResults) {
+  const q = query.toLowerCase();
+  const consoleHints = [
+    'god of war','spider-man','spiderman','horizon','ghost of tsushima',
+    'last of us','uncharted','ratchet','bloodborne','demons souls','demon souls',
+    'returnal','gran turismo','halo','forza','gears of war','sea of thieves',
+    'starfield','redfall','zelda','mario','pokemon','metroid','splatoon',
+    'kirby','donkey kong','animal crossing','fire emblem','xenoblade',
+    'astro bot','infamous','days gone','death stranding'
+  ];
+
+  const genreHints = [
+    'rpg','fps','moba','mmorpg','battle royale','souls-like','soulslike',
+    'open world','sandbox','survival','horror','platformer','racing games',
+    'strategy games','simulation','puzzle games','indie games','co-op',
+    'multiplayer','shooter','fighting games','sports games','card game'
+  ];
+
+  const publisherHints = [
+    'rockstar','ubisoft','ea games','electronic arts','activision','blizzard',
+    'bethesda','2k games','square enix','capcom','bandai namco','sega',
+    'konami','cd projekt','from software','fromsoft','valve','epic games',
+    'riot games','paradox','devolver','annapurna','team17'
+  ];
+
+  const looksLikeConsole = consoleHints.some(hint => q.includes(hint));
+  const looksLikeGenre = genreHints.some(hint => q.includes(hint));
+  const matchedPublisher = publisherHints.find(hint => q.includes(hint));
+  const looksLikePublisher = !!matchedPublisher;
+  const q2 = encodeURIComponent(query);
+
+  // Show suggestion inline in search bar area
+  const inlineBar = document.getElementById('inline-suggestion');
+  if (suggestion && suggestionResults && suggestionResults.length > 0) {
+    inlineBar.innerHTML = `
+      <span>Did you mean</span>
+      <button class="inline-suggestion-btn" onclick="acceptSuggestion('${suggestion.replace(/'/g,"\\'")}')">
+        ${suggestion}
+      </button>
+      <span>? (${suggestionResults.length} result${suggestionResults.length > 1 ? 's' : ''} found)</span>
+    `;
+    inlineBar.style.display = 'flex';
+  } else {
+    inlineBar.style.display = 'none';
+  }
+
+  let html = '';
+
+  if (looksLikePublisher) {
+    html += `
+      <div class="no-results-card">
+        <div class="no-results-icon">🏢</div>
+        <div class="no-results-title">Looks like a publisher search</div>
+        <div class="no-results-sub">
+          PriceRaider searches by exact game title, not by publisher or developer.<br/>
+          Try searching for a specific game title instead.
+        </div>
+        <div class="console-btns">
+          <a class="console-btn" href="https://store.steampowered.com/search/?publisher=${q2}" target="_blank" rel="noopener noreferrer">
+            🖥️ Browse on Steam by publisher
+          </a>
+          <a class="console-btn" href="https://www.google.com/search?q=${q2}+best+PC+games" target="_blank" rel="noopener noreferrer">
+            🔎 Find their games on Google
+          </a>
+        </div>
+      </div>
+    `;
+  } else if (looksLikeGenre) {
+    html += `
+      <div class="no-results-card">
+        <div class="no-results-icon">🗂️</div>
+        <div class="no-results-title">Looks like a genre search</div>
+        <div class="no-results-sub">
+          PriceRaider searches by exact game title only — genre browsing isn't supported yet.<br/>
+          Try searching for a specific game you have in mind.
+        </div>
+        <div class="console-btns">
+          <a class="console-btn" href="https://store.steampowered.com/search/?term=${q2}" target="_blank" rel="noopener noreferrer">
+            🖥️ Browse this genre on Steam
+          </a>
+          <a class="console-btn" href="https://www.google.com/search?q=best+${q2}+PC+games+2024" target="_blank" rel="noopener noreferrer">
+            🔎 Find top ${query} games
+          </a>
+        </div>
+      </div>
+    `;
+  } else if (looksLikeConsole) {
+    html += `
+      <div class="no-results-card">
+        <div class="no-results-icon">🎮</div>
+        <div class="no-results-title">This looks like a console game</div>
+        <div class="no-results-sub">
+          PriceRaider covers PC game stores only. "${query}" may be exclusive to PlayStation, Xbox, or Nintendo — try searching below.
+        </div>
+        <div class="console-btns">
+          <a class="console-btn" href="https://store.playstation.com/en-us/search/${q2}" target="_blank" rel="noopener noreferrer">
+            🎮 PlayStation Store
+          </a>
+          <a class="console-btn" href="https://www.xbox.com/en-US/Search/Results?q=${q2}" target="_blank" rel="noopener noreferrer">
+            🟩 Xbox Store
+          </a>
+          <a class="console-btn" href="https://www.nintendo.com/us/search/#q=${q2}" target="_blank" rel="noopener noreferrer">
+            🔴 Nintendo eShop
+          </a>
+        </div>
+      </div>
+    `;
+  } else {
+    html += `
+      <div class="no-results-card">
+        <div class="no-results-icon">🔍</div>
+        <div class="no-results-title">No PC deals found for "${query}"</div>
+        <div class="no-results-sub">
+          This game may not be available on PC storefronts yet, or try a slightly different title.<br/>
+          PriceRaider only tracks PC digital stores.
+        </div>
+        <div class="console-btns">
+          <a class="console-btn" href="https://store.steampowered.com/search/?term=${q2}" target="_blank" rel="noopener noreferrer">
+            🖥️ Search Steam directly
+          </a>
+          <a class="console-btn" href="https://www.google.com/search?q=${q2}+PC+game+deals" target="_blank" rel="noopener noreferrer">
+            🔎 Google it
+          </a>
+        </div>
+      </div>
+    `;
+  }
+
+  const section = document.getElementById('no-results-section');
+  section.innerHTML = html;
+  section.style.display = 'block';
+  document.getElementById('home-btn-wrap').style.display = 'block';
+}
+
+function renderResults(games) {
+  const list = document.getElementById('results-list');
+  list.innerHTML = '';
+  games.forEach(game => {
+    const card = document.createElement('button');
+    card.className = 'result-card';
+    card.innerHTML = `
+      ${thumbHTML(game.thumb, game.external, 'sm')}
+      <div class="result-info">
+        <span class="result-name">${game.external}</span>
+        ${game.cheapest ? `<span class="result-price">from ${fmt(game.cheapest)}</span>` : ''}
+      </div>
+      <span class="result-arrow">›</span>
+    `;
+    card.onclick = () => fetchDeals(game);
+    list.appendChild(card);
+  });
+  document.getElementById('results-section').style.display = 'block';
+  document.getElementById('home-btn-wrap').style.display = 'block';
+  handleThumbErrors();
+}
+
+async function fetchDeals(game) {
+  document.getElementById('results-section').style.display = 'none';
+  document.getElementById('deals-section').style.display = 'block';
+  document.getElementById('deals-list').innerHTML = '<p class="loading-text">Loading deals...</p>';
+
+  // Render game header
+  document.getElementById('game-header').innerHTML = `
+    <div class="game-header">
+      ${thumbHTML(game.thumb, game.external, 'lg')}
+      <div style="flex:1">
+        <div class="game-title">${game.external}</div>
+        <div class="game-subtitle" id="best-price-line">Fetching best price...</div>
+      </div>
+      <button id="wl-btn-${game.gameID}" class="wl-add-btn ${isWishlisted(game.gameID) ? 'wl-added' : ''}" onclick="toggleWishlist(${JSON.stringify(game).replace(/"/g,'&quot;')})">
+        ${isWishlisted(game.gameID) ? '❤️ Wishlisted' : '🤍 Wishlist'}
+      </button>
+    </div>
+  `;
+  handleThumbErrors();
+
+  try {
+    const res = await fetch(`https://www.cheapshark.com/api/1.0/games?id=${game.gameID}`);
+    const data = await res.json();
+    const deals = (data.deals || []).sort((a,b) => parseFloat(a.price) - parseFloat(b.price));
+
+    if (deals.length === 0) {
+      document.getElementById('deals-list').innerHTML = '<p class="loading-text">No current deals found.</p>';
+      return;
+    }
+
+    const best = deals[0];
+    document.getElementById('best-price-line').innerHTML =
+      `Best price: <span class="best-price">${fmt(best.price)}</span>` +
+      (parseFloat(best.savings) > 0 ? ` <span class="retail-price">was $${parseFloat(best.retailPrice).toFixed(2)}</span>` : '');
+
+    // Fetch historical low for deal quality badges
+    let allTimeLow = null;
+    try {
+      const histRes = await fetch(`https://www.cheapshark.com/api/1.0/games?id=${game.gameID}`);
+      const histData = await histRes.json();
+      if (histData.cheapestPriceEver) allTimeLow = parseFloat(histData.cheapestPriceEver.price);
+    } catch { /* skip */ }
+
+    renderDeals(deals, allTimeLow);
+    renderExternalLinks(game.external, deals.length);
+    fetchPriceHistory(game.gameID);
+    renderSalePredictions(game, allTimeLow, deals);
+  } catch(e) {
+    document.getElementById('deals-list').innerHTML = '<p class="loading-text">Failed to load deals.</p>';
+  }
+}
+
+function renderDeals(deals, allTimeLow) {
+  const list = document.getElementById('deals-list');
+  const isLimited = deals.length <= 2;
+
+  list.innerHTML = `<p class="section-label">ALL PRICES — ${deals.length} STORE${deals.length !== 1 ? 'S' : ''}</p>`;
+
+  // Limited results warning
+  if (isLimited) {
+    const q = encodeURIComponent(document.getElementById('search-input').value.trim());
+    list.innerHTML += `
+      <div class="limited-warning">
+        <span>⚠ Limited results — this game may have more listings not tracked by our database.</span>
+        <a href="https://store.steampowered.com/search/?term=${q}" target="_blank" rel="noopener noreferrer" class="limited-steam-link">🖥️ Search Steam</a>
+      </div>
+    `;
+  }
+
+  deals.forEach((deal, i) => {
+    const storeName = STORES[deal.storeID] || `Store ${deal.storeID}`;
+    const savings = parseFloat(deal.savings);
+    const price = parseFloat(deal.price);
+    const isBest = i === 0;
+
+    let badgeHTML = '';
+    if (isBest) badgeHTML += `<span class="best-badge">BEST DEAL</span>`;
+    if (savings > 0) {
+      let color = savings >= 75 ? '#00e676' : savings >= 50 ? '#69f0ae' : savings >= 25 ? '#b9f6ca' : '#cccccc';
+      badgeHTML += `<span class="savings-badge" style="color:${color};border-color:${color}">${Math.round(savings)}% OFF</span>`;
+    }
+
+    // Deal quality badge vs all-time low
+    if (allTimeLow && allTimeLow > 0) {
+      const pctAboveLow = ((price - allTimeLow) / allTimeLow) * 100;
+      let qualityBadge = '';
+      if (pctAboveLow <= 5) {
+        qualityBadge = `<span class="quality-badge quality-atl">🔥 All-Time Low</span>`;
+      } else if (pctAboveLow <= 20) {
+        qualityBadge = `<span class="quality-badge quality-great">✦ Near Historic Low</span>`;
+      } else if (pctAboveLow <= 50) {
+        qualityBadge = `<span class="quality-badge quality-ok">↓ Decent Deal</span>`;
+      } else {
+        qualityBadge = `<span class="quality-badge quality-wait">⏳ Wait for Sale</span>`;
+      }
+      badgeHTML += qualityBadge;
+    }
+
+    const a = document.createElement('a');
+    a.className = 'deal-row';
+    a.href = `https://www.cheapshark.com/redirect?dealID=${deal.dealID}`;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.style.background = isBest
+      ? 'linear-gradient(90deg, rgba(0,230,118,0.08), rgba(30,30,50,0.9))'
+      : 'rgba(255,255,255,0.03)';
+    a.style.borderColor = isBest ? 'rgba(0,230,118,0.3)' : 'rgba(255,255,255,0.07)';
+
+    a.innerHTML = `
+      <div class="store-tag" style="background:${getColor(storeName)}">${storeName}</div>
+      <div class="deal-meta">${badgeHTML}</div>
+      <div class="price-block">
+        ${savings > 0 ? `<span class="strike-price">$${parseFloat(deal.retailPrice).toFixed(2)}</span>` : ''}
+        <span class="deal-price" style="color:${isBest ? '#00e676' : '#ffffff'}">${fmt(deal.price)}</span>
+      </div>
+      <span class="visit-btn">Visit →</span>
+    `;
+    list.appendChild(a);
+  });
+}
+
+function renderExternalLinks(gameName, dealCount) {
+  const q = encodeURIComponent(gameName);
+  const isLimited = dealCount <= 2;
+  const sites = [
+    { name: "Kinguin", color: "#f0b429", url: `https://www.kinguin.net/catalogsearch/result/?q=${q}` },
+    { name: "G2A", color: "#f4a018", url: `https://www.g2a.com/search?query=${q}` },
+    { name: "Fanatical", color: "#e4202d", url: `https://www.fanatical.com/en/search?search=${q}` },
+    { name: "Green Man Gaming", color: "#00a651", url: `https://www.greenmangaming.com/search/?query=${q}` },
+    { name: "Humble Bundle", color: "#cc2929", url: `https://www.humblebundle.com/store/search?search=${q}` },
+    { name: "DLGamer", color: "#0074d9", url: `https://www.dlgamer.com/search.php?search_query=${q}` },
+  ];
+
+  const section = document.getElementById('also-search-section');
+  section.innerHTML = `
+    <div class="ext-divider"></div>
+    ${isLimited ? `
+      <a href="https://store.steampowered.com/search/?term=${q}" target="_blank" rel="noopener noreferrer" class="steam-prominent-btn">
+        🖥️ Search Steam directly — may have more listings
+      </a>
+    ` : ''}
+    <div class="also-search">
+      <p class="also-search-label">ALSO SEARCH ON</p>
+      <div class="also-search-grid">
+        ${sites.map(s => `
+          <a class="ext-btn" href="${s.url}" target="_blank" rel="noopener noreferrer">
+            <span class="ext-dot" style="background:${s.color}"></span>
+            Search ${s.name}
+          </a>
+        `).join('')}
+      </div>
+      <p class="kinguin-note">
+        <span>⚠ G2A & Kinguin are gray-market key resellers.</span> Prices may be lower but keys come from third-party sellers — not the publisher directly. Avoid listings marked "Steam Account" — those sell full accounts which violates Steam's ToS and can get you banned.
+      </p>
+    </div>
+  `;
+  section.style.display = 'block';
+}
+
+function goHome() {
+  document.getElementById('results-section').style.display = 'none';
+  document.getElementById('deals-section').style.display = 'none';
+  document.getElementById('no-results-section').style.display = 'none';
+  document.getElementById('also-search-section').style.display = 'none';
+  document.getElementById('price-history-section').style.display = 'none';
+  document.getElementById('sale-prediction-section').style.display = 'none';
+  document.getElementById('inline-suggestion').style.display = 'none';
+  document.getElementById('home-btn-wrap').style.display = 'none';
+  document.getElementById('hints-section').style.display = 'block';
+  document.getElementById('search-input').value = '';
+  lastResults = [];
+}
+function goBack() {
+  document.getElementById('deals-section').style.display = 'none';
+  document.getElementById('also-search-section').style.display = 'none';
+  document.getElementById('no-results-section').style.display = 'none';
+  document.getElementById('price-history-section').style.display = 'none';
+  document.getElementById('sale-prediction-section').style.display = 'none';
+  document.getElementById('inline-suggestion').style.display = 'none';
+  if (lastResults.length > 0) {
+    renderResults(lastResults);
+  } else {
+    document.getElementById('hints-section').style.display = 'block';
+  }
+}
+
+document.getElementById('search-input').addEventListener('keydown', (e) => {
+  const dd = document.getElementById('suggestions-dropdown');
+  const isOpen = dd.classList.contains('visible');
+  const items = document.querySelectorAll('.suggestion-item');
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (!isOpen) return;
+    setActiveIndex(Math.min(activeIndex + 1, items.length - 1));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (!isOpen) return;
+    setActiveIndex(Math.max(activeIndex - 1, 0));
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    clearTimeout(debounceTimer);
+    if (isOpen && activeIndex >= 0 && items[activeIndex]) {
+      items[activeIndex].click();
+    } else {
+      hideDropdown();
+      searchGames();
+    }
+  } else if (e.key === 'Escape') {
+    hideDropdown();
+  }
+});
+
+document.getElementById('search-input').addEventListener('input', (e) => {
+  const q = e.target.value.trim();
+  clearTimeout(debounceTimer);
+  if (q.length < 2) { hideDropdown(); return; }
+  debounceTimer = setTimeout(async () => {
+    try {
+      const expanded = expandAcronym(q);
+      const searchQ = expanded || q;
+      const res = await fetch(`https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(searchQ)}&limit=10`);
+      const data = await res.json();
+      const ranked = mergeWithPopular(data, searchQ);
+      lastResults = ranked;
+      showDropdown(ranked, searchQ);
+    } catch { hideDropdown(); }
+  }, 300);
+});
+// ── Wishlist ──────────────────────────────────────────
+let currentTab = 'search';
+let modalGame = null;
+
+function getWishlist() {
+  try { return JSON.parse(localStorage.getItem('priceraider_wishlist') || '[]'); } catch { return []; }
+}
+
+function saveWishlist(list) {
+  localStorage.setItem('priceraider_wishlist', JSON.stringify(list));
+  updateWishlistCount();
+}
+
+function updateWishlistCount() {
+  const wl = getWishlist();
+  const badge = document.getElementById('wishlist-count');
+  if (wl.length > 0) {
+    badge.textContent = wl.length;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function isWishlisted(gameID) {
+  return getWishlist().some(g => g.gameID == gameID);
+}
+
+function toggleWishlist(game) {
+  let wl = getWishlist();
+  const idx = wl.findIndex(g => g.gameID == game.gameID);
+  if (idx >= 0) {
+    wl.splice(idx, 1);
+  } else {
+    wl.push({ gameID: game.gameID, name: game.external, thumb: game.thumb || null, cheapest: game.cheapest || null, added: Date.now() });
+  }
+  saveWishlist(wl);
+  updateWishlistBtn(game.gameID);
+  if (currentTab === 'wishlist') renderWishlist();
+}
+
+function updateWishlistBtn(gameID) {
+  const btn = document.getElementById(`wl-btn-${gameID}`);
+  if (!btn) return;
+  const wishlisted = isWishlisted(gameID);
+  btn.textContent = wishlisted ? '❤️ Wishlisted' : '🤍 Wishlist';
+  btn.classList.toggle('wl-added', wishlisted);
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-search').classList.toggle('active', tab === 'search');
+  document.getElementById('tab-wishlist').classList.toggle('active', tab === 'wishlist');
+  const searchContainer = document.querySelector('.container');
+  const wishlistContainer = document.getElementById('wishlist-section');
+  if (tab === 'search') {
+    searchContainer.style.display = 'block';
+    wishlistContainer.style.display = 'none';
+  } else {
+    searchContainer.style.display = 'none';
+    wishlistContainer.style.display = 'block';
+    renderWishlist();
+  }
+}
+
+function renderWishlist() {
+  const wl = getWishlist();
+  const list = document.getElementById('wishlist-list');
+  if (wl.length === 0) {
+    list.innerHTML = `
+      <div class="wl-empty">
+        <div class="wl-empty-icon">🤍</div>
+        <div class="wl-empty-text">Your wishlist is empty.<br/>Search for a game and hit Wishlist to save it.</div>
+        <button class="nav-tab active" style="margin:20px auto 0;display:flex;" onclick="switchTab('search')">← Back to Search</button>
+      </div>`;
+    return;
+  }
+  list.innerHTML = `
+    <button class="back-btn" onclick="switchTab('search')">← Back to Search</button>
+    <div class="wl-header">
+      <span class="wl-title">${wl.length} SAVED GAME${wl.length > 1 ? 'S' : ''}</span>
+      <button class="wl-clear" onclick="clearWishlist()">Clear all</button>
+    </div>
+    ${wl.map(g => {
+      const initials = g.name.substring(0, 3).toUpperCase();
+      const imgHTML = g.thumb
+        ? `<img class="game-img-thumb" data-initials="${initials}" data-size="sm" src="${g.thumb}" alt="" style="width:60px;height:28px;object-fit:cover;border-radius:6px;flex-shrink:0;" />`
+        : `<div class="thumb-placeholder sm">${initials}</div>`;
+      return `
+        <div class="wl-card">
+          ${imgHTML}
+          <div class="wl-info">
+            <div class="wl-name">${g.name}</div>
+            <div class="wl-meta">${g.cheapest ? `Current best: <span>$${parseFloat(g.cheapest).toFixed(2)}</span>` : 'No price data'}</div>
+          </div>
+          <div class="wl-actions">
+            <button class="wl-btn wl-btn-alert" onclick="openModal(${JSON.stringify(g).replace(/"/g,'&quot;')})">🔔 Alert</button>
+            <button class="wl-btn wl-btn-view" onclick="searchFromWishlist('${g.name.replace(/'/g,"\\'")}')">View Deals</button>
+            <button class="wl-btn wl-btn-remove" onclick="removeFromWishlist(${g.gameID})">✕</button>
+          </div>
+        </div>`;
+    }).join('')}
+  `;
+  handleThumbErrors();
+}
+
+function clearWishlist() {
+  if (confirm('Clear your entire wishlist?')) {
+    saveWishlist([]);
+    renderWishlist();
+  }
+}
+
+function removeFromWishlist(gameID) {
+  let wl = getWishlist().filter(g => g.gameID != gameID);
+  saveWishlist(wl);
+  renderWishlist();
+}
+
+function searchFromWishlist(name) {
+  switchTab('search');
+  document.getElementById('search-input').value = name;
+  searchGames(name);
+}
+
+// ── Alert Modal ───────────────────────────────────────
+async function openModal(game) {
+  if (typeof game === 'string') game = JSON.parse(game.replace(/&quot;/g, '"'));
+  modalGame = game;
+  document.getElementById('modal-title').textContent = `Price Alert — ${game.name}`;
+  document.getElementById('modal-subtitle').textContent = game.cheapest ? `Currently from $${parseFloat(game.cheapest).toFixed(2)}` : '';
+  // Default to 75% while we fetch the real historical low
+  if (game.cheapest) document.getElementById('modal-price').value = (parseFloat(game.cheapest) * 0.75).toFixed(2);
+  document.getElementById('modal-overlay').style.display = 'flex';
+
+  // Fetch historical low and update suggested price
+  try {
+    const res = await fetch(`https://www.cheapshark.com/api/1.0/games?id=${game.gameID}`);
+    const data = await res.json();
+    const historicalLow = data.cheapestPriceEver;
+    if (historicalLow && historicalLow.price != null) {
+      const low = parseFloat(historicalLow.price);
+      document.getElementById('modal-price').value = low.toFixed(2);
+      const current = parseFloat(game.cheapest);
+      const note = low < current
+        ? `💡 Historical low is $${low.toFixed(2)} — we'll alert you at that price.`
+        : `💡 Current price matches the historical low of $${low.toFixed(2)}.`;
+      document.getElementById('modal-historical').textContent = note;
+      document.getElementById('modal-historical').style.display = 'block';
+    }
+  } catch {
+    // Keep the 75% fallback silently
+  }
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').style.display = 'none';
+  document.getElementById('modal-historical').style.display = 'none';
+  document.getElementById('modal-historical').textContent = '';
+  modalGame = null;
+}
+
+async function confirmAlert() {
+  const email = document.getElementById('modal-email').value.trim();
+  const price = parseFloat(document.getElementById('modal-price').value);
+  if (!email || !email.includes('@')) { alert('Please enter a valid email.'); return; }
+  if (!price || price <= 0) { alert('Please enter a valid target price.'); return; }
+  if (!modalGame) return;
+
+  try {
+    const btn = document.querySelector('.modal-confirm');
+    btn.textContent = 'Setting alert...';
+    btn.disabled = true;
+    const res = await fetch(`https://www.cheapshark.com/api/1.0/alerts?action=set&email=${encodeURIComponent(email)}&gameID=${modalGame.gameID}&price=${price}`);
+    const text = await res.text();
+    if (text === 'true' || res.ok) {
+      closeModal();
+      alert(`✅ Alert set! We'll email ${email} when ${modalGame.name} drops below $${price.toFixed(2)}.`);
+    } else {
+      alert('Something went wrong setting the alert. Try again.');
+    }
+  } catch {
+    alert('Could not connect to set the alert. Check your connection.');
+  } finally {
+    const btn = document.querySelector('.modal-confirm');
+    if (btn) { btn.textContent = 'Set Alert ✓'; btn.disabled = false; }
+  }
+}
+
+// ── Price History Chart ───────────────────────────────
+async function fetchPriceHistory(gameID) {
+  try {
+    const res = await fetch(`https://www.cheapshark.com/api/1.0/games?id=${gameID}`);
+    const data = await res.json();
+    const deals = data.deals || [];
+    const historicalLow = data.cheapestPriceEver;
+
+    // Build price points from deals (current snapshot) + historical low
+    const points = deals
+      .filter(d => parseFloat(d.price) > 0)
+      .map(d => ({ price: parseFloat(d.price), label: STORES[d.storeID] || 'Store' }))
+      .sort((a, b) => a.price - b.price);
+
+    if (points.length < 2 && !historicalLow) return;
+
+    renderPriceChart(points, historicalLow, data.info);
+  } catch { /* silently skip */ }
+}
+
+function renderPriceChart(points, historicalLow, info) {
+  if (!points.length) return;
+
+  const section = document.getElementById('price-history-section');
+  const container = document.getElementById('price-history-chart');
+  section.style.display = 'block';
+
+  const prices = points.map(p => p.price);
+  const minPrice = historicalLow ? Math.min(...prices, parseFloat(historicalLow.price)) : Math.min(...prices);
+  const maxPrice = Math.max(...prices);
+  const currentBest = prices[0];
+  const retailPrice = info && info.retailPrice ? parseFloat(info.retailPrice) : maxPrice;
+  const allTimeLow = historicalLow ? parseFloat(historicalLow.price) : minPrice;
+  const allTimeLowDate = historicalLow ? new Date(historicalLow.date * 1000).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'N/A';
+
+  const W = 600, H = 120, PAD = { t: 10, r: 20, b: 30, l: 45 };
+  const chartW = W - PAD.l - PAD.r;
+  const chartH = H - PAD.t - PAD.b;
+
+  // Price range with padding
+  const pricePad = (maxPrice - minPrice) * 0.2 || 5;
+  const yMin = Math.max(0, minPrice - pricePad);
+  const yMax = maxPrice + pricePad;
+  const yRange = yMax - yMin;
+
+  const yPos = price => PAD.t + chartH - ((price - yMin) / yRange) * chartH;
+  const xPos = i => PAD.l + (i / Math.max(points.length - 1, 1)) * chartW;
+
+  // Build path
+  const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${xPos(i).toFixed(1)},${yPos(p.price).toFixed(1)}`).join(' ');
+  const fillD = `${pathD} L${xPos(points.length - 1).toFixed(1)},${(PAD.t + chartH).toFixed(1)} L${PAD.l},${(PAD.t + chartH).toFixed(1)} Z`;
+
+  // Y axis labels
+  const yLabels = [yMin, (yMin + yMax) / 2, yMax].map(v => ({
+    y: yPos(v),
+    label: `$${v.toFixed(0)}`
+  }));
+
+  // All time low line
+  const lowY = yPos(allTimeLow).toFixed(1);
+
+  container.innerHTML = `
+    <div class="chart-wrap">
+      <svg class="chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#6340ff" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#6340ff" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Grid lines -->
+        ${yLabels.map(l => `<line x1="${PAD.l}" y1="${l.y.toFixed(1)}" x2="${W - PAD.r}" y2="${l.y.toFixed(1)}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>`).join('')}
+
+        <!-- All time low line -->
+        <line x1="${PAD.l}" y1="${lowY}" x2="${W - PAD.r}" y2="${lowY}" stroke="#00e676" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+        <text x="${W - PAD.r + 2}" y="${parseFloat(lowY) + 4}" fill="#00e676" font-size="9" opacity="0.7">LOW</text>
+
+        <!-- Fill -->
+        <path d="${fillD}" fill="url(#chartGrad)"/>
+
+        <!-- Line -->
+        <path d="${pathD}" fill="none" stroke="#6340ff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+
+        <!-- Dots -->
+        ${points.map((p, i) => `<circle cx="${xPos(i).toFixed(1)}" cy="${yPos(p.price).toFixed(1)}" r="3" fill="${i === 0 ? '#00e676' : '#6340ff'}" stroke="#0d0d1a" stroke-width="1.5"/>`).join('')}
+
+        <!-- Y axis labels -->
+        ${yLabels.map(l => `<text x="${PAD.l - 4}" y="${l.y + 4}" text-anchor="end" fill="rgba(255,255,255,0.3)" font-size="9">${l.label}</text>`).join('')}
+
+        <!-- X axis store labels -->
+        ${points.map((p, i) => i % Math.ceil(points.length / 5) === 0 ? `<text x="${xPos(i).toFixed(1)}" y="${H - 4}" text-anchor="middle" fill="rgba(255,255,255,0.25)" font-size="8">${p.label.substring(0,8)}</text>` : '').join('')}
+      </svg>
+      <div class="chart-tooltip" id="chart-tooltip"></div>
+    </div>
+    <div class="chart-stats-row">
+      <div class="chart-stat-card">
+        <div class="chart-stat-val" style="color:#00e676">$${currentBest.toFixed(2)}</div>
+        <div class="chart-stat-label">Best Now</div>
+      </div>
+      <div class="chart-stat-card">
+        <div class="chart-stat-val" style="color:#a78bfa">$${allTimeLow.toFixed(2)}</div>
+        <div class="chart-stat-label">All-Time Low</div>
+      </div>
+      <div class="chart-stat-card">
+        <div class="chart-stat-val">$${retailPrice.toFixed(2)}</div>
+        <div class="chart-stat-label">Retail</div>
+      </div>
+      <div class="chart-stat-card">
+        <div class="chart-stat-val" style="color:${currentBest <= allTimeLow * 1.05 ? '#00e676' : '#f0b429'}">${currentBest <= allTimeLow * 1.05 ? '🔥 Buy Now' : '⏳ Wait'}</div>
+        <div class="chart-stat-label">Verdict</div>
+      </div>
+    </div>
+    ${allTimeLow < currentBest ? `<p style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:8px;text-align:center">All-time low was $${allTimeLow.toFixed(2)} · ${allTimeLowDate}</p>` : ''}
+  `;
+}
+
+// ── Sale Predictions ──────────────────────────────────
+function renderSalePredictions(game, allTimeLow, deals) {
+  const now = new Date();
+
+  // Confirmed 2026 Steam sale dates
+  const upcomingSales = [
+    { name: 'Steam Summer Sale', start: new Date('2026-06-25'), end: new Date('2026-07-09'), size: 'major', emoji: '☀️' },
+    { name: 'Steam Autumn Sale', start: new Date('2026-10-01'), end: new Date('2026-10-08'), size: 'major', emoji: '🍂' },
+    { name: 'Steam Winter Sale', start: new Date('2026-12-17'), end: new Date('2027-01-04'), size: 'major', emoji: '❄️' },
+  ].filter(s => s.start > now);
+
+  // Last sale date from deals
+  const lastSaleDeal = deals.find(d => parseFloat(d.savings) > 0);
+  const lastSaleDate = lastSaleDeal && lastSaleDeal.lastChange
+    ? new Date(lastSaleDeal.lastChange * 1000)
+    : null;
+  const daysSinceLastSale = lastSaleDate
+    ? Math.floor((now - lastSaleDate) / (1000 * 60 * 60 * 24))
+    : null;
+
+  // Current best price vs all-time low
+  const currentBest = deals.length ? parseFloat(deals[0].price) : null;
+  const pctAboveLow = allTimeLow && currentBest ? ((currentBest - allTimeLow) / allTimeLow) * 100 : null;
+
+  const section = document.getElementById('sale-prediction-section');
+  const content = document.getElementById('sale-prediction-content');
+  section.style.display = 'block';
+
+  let html = '';
+
+  // Next Steam sale card
+  if (upcomingSales.length > 0) {
+    const next = upcomingSales[0];
+    const daysUntil = Math.ceil((next.start - now) / (1000 * 60 * 60 * 24));
+    const weeksUntil = Math.ceil(daysUntil / 7);
+    const badgeClass = daysUntil <= 30 ? 'badge-soon' : daysUntil <= 90 ? 'badge-months' : 'badge-far';
+    const badgeText = daysUntil <= 30 ? `${daysUntil} days away` : daysUntil <= 90 ? `~${weeksUntil} weeks` : `~${Math.ceil(daysUntil/30)} months`;
+    const startStr = next.start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+    const endStr = next.end.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+
+    html += `
+      <div class="prediction-card">
+        <div class="prediction-icon">${next.emoji}</div>
+        <div class="prediction-body">
+          <div class="prediction-title">${next.name}</div>
+          <div class="prediction-sub">${startStr} – ${endStr} · ${next.size === 'major' ? 'One of Steam\'s biggest sales of the year' : 'Seasonal sale event'}</div>
+        </div>
+        <span class="prediction-badge ${badgeClass}">${badgeText}</span>
+      </div>
+    `;
+  }
+
+  // Days since last sale
+  if (daysSinceLastSale !== null) {
+    const overdue = daysSinceLastSale > 90;
+    html += `
+      <div class="prediction-card">
+        <div class="prediction-icon">📅</div>
+        <div class="prediction-body">
+          <div class="prediction-title">Last went on sale ${daysSinceLastSale} days ago</div>
+          <div class="prediction-sub">${overdue ? 'It\'s been a while — another discount may be coming soon.' : 'Relatively recent sale — may not drop again for a bit.'}</div>
+        </div>
+        <span class="prediction-badge ${overdue ? 'badge-soon' : 'badge-far'}">${overdue ? 'Overdue' : 'Recent sale'}</span>
+      </div>
+    `;
+  }
+
+  // Price vs all-time low verdict
+  if (pctAboveLow !== null) {
+    let icon, title, sub, badge, badgeClass;
+    if (pctAboveLow <= 5) {
+      icon = '🔥'; title = 'This is near the all-time low price';
+      sub = `At $${currentBest.toFixed(2)}, you\'re basically getting the best deal this game has ever had.`;
+      badge = 'Buy Now'; badgeClass = 'badge-soon';
+    } else if (pctAboveLow <= 25) {
+      icon = '✦'; title = 'Good deal, but it\'s been cheaper';
+      sub = `The all-time low was $${allTimeLow.toFixed(2)}. Worth buying now or waiting for the next major sale.`;
+      badge = 'Decent deal'; badgeClass = 'badge-months';
+    } else if (pctAboveLow <= 60) {
+      icon = '⏳'; title = 'Could drop further';
+      sub = `The all-time low is $${allTimeLow.toFixed(2)} — ${Math.round(pctAboveLow)}% below current. Wait for a major sale if you\'re not in a hurry.`;
+      badge = 'Wait a bit'; badgeClass = 'badge-months';
+    } else {
+      icon = '🛑'; title = 'Well above the historic low';
+      sub = `This game has sold for as low as $${allTimeLow.toFixed(2)}. Not a great time to buy unless you need it now.`;
+      badge = 'Wait'; badgeClass = 'badge-far';
+    }
+    html += `
+      <div class="prediction-card">
+        <div class="prediction-icon">${icon}</div>
+        <div class="prediction-body">
+          <div class="prediction-title">${title}</div>
+          <div class="prediction-sub">${sub}</div>
+        </div>
+        <span class="prediction-badge ${badgeClass}">${badge}</span>
+      </div>
+    `;
+  }
+
+  html += `<p class="prediction-disclaimer">⚠ Predictions are based on historical patterns and confirmed Steam sale dates. Not guaranteed — publisher sales can happen anytime.</p>`;
+  content.innerHTML = html;
+}
+
+// Init
+updateWishlistCount();
+</script>
+</body>
+</html>
