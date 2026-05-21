@@ -292,6 +292,42 @@
   }
   .hint-chip:hover { background: rgba(255,255,255,0.1); }
 
+  /* Hot Deals Feed */
+  .hot-deals-wrap { margin-top: 32px; text-align: left; }
+  .hot-deals-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .hot-deals-title { font-size: 11px; letter-spacing: 2px; font-weight: 700; color: rgba(255,255,255,0.5); }
+  .hot-deals-sub { font-size: 11px; color: rgba(255,255,255,0.25); }
+  .hot-deals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+  }
+  .hot-deal-card {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; overflow: hidden; cursor: pointer;
+    transition: background 0.15s, border-color 0.15s; text-decoration: none;
+    display: flex; flex-direction: column;
+  }
+  .hot-deal-card:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); }
+  .hot-deal-img { width: 100%; height: 80px; object-fit: cover; background: rgba(255,255,255,0.05); }
+  .hot-deal-img-placeholder { width: 100%; height: 80px; background: rgba(99,60,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.3); letter-spacing: 1px; }
+  .hot-deal-info { padding: 10px 12px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .hot-deal-name { font-size: 12px; font-weight: 700; color: #fff; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .hot-deal-store { font-size: 10px; color: rgba(255,255,255,0.35); }
+  .hot-deal-prices { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+  .hot-deal-price { font-size: 14px; font-weight: 800; color: #00e676; }
+  .hot-deal-original { font-size: 11px; color: rgba(255,255,255,0.3); text-decoration: line-through; }
+  .hot-deal-badge { font-size: 9px; font-weight: 800; color: #00e676; background: rgba(0,230,118,0.1); border: 1px solid rgba(0,230,118,0.3); border-radius: 4px; padding: 2px 5px; margin-left: auto; }
+  .hot-deal-skeleton { height: 160px; background: rgba(255,255,255,0.04); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); animation: pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  @media (max-width: 600px) {
+    .hot-deals-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .hot-deal-img { height: 65px; }
+    .hot-deal-name { font-size: 11px; }
+    .hot-deal-price { font-size: 13px; }
+  }
+
   .loading-text { color: rgba(255,255,255,0.4); text-align: center; font-size: 14px; padding: 20px 0; }
   .footer { text-align: center; font-size: 11px; color: rgba(255,255,255,0.2); margin-top: 48px; letter-spacing: 0.5px; }
 
@@ -606,6 +642,17 @@
       <button class="hint-chip" onclick="setQuery('Hades')">Hades</button>
       <button class="hint-chip" onclick="setQuery('GTA V')">GTA V</button>
       <button class="hint-chip" onclick="setQuery(`Baldur's Gate 3`)">Baldur's Gate 3</button>
+    </div>
+
+    <!-- Hot Deals Feed -->
+    <div class="hot-deals-wrap" id="hot-deals-wrap">
+      <div class="hot-deals-header">
+        <span class="hot-deals-title">🔥 HOT DEALS RIGHT NOW</span>
+        <span class="hot-deals-sub" id="hot-deals-sub">Loading...</span>
+      </div>
+      <div class="hot-deals-grid" id="hot-deals-grid">
+        ${[...Array(6)].map(() => `<div class="hot-deal-skeleton"></div>`).join('')}
+      </div>
     </div>
   </div>
 
@@ -1078,7 +1125,6 @@ async function searchGames(overrideQuery) {
   document.getElementById('deals-section').style.display = 'none';
   document.getElementById('hints-section').style.display = 'none';
   document.getElementById('no-results-section').style.display = 'none';
-
   try {
     console.log('Fetching from CheapShark...');
     const res = await fetch(`https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(query)}&limit=10`);
@@ -1906,8 +1952,52 @@ function renderSalePredictions(game, allTimeLow, deals) {
   content.innerHTML = html;
 }
 
+// ── Hot Deals Feed ────────────────────────────────────
+async function fetchHotDeals() {
+  try {
+    const res = await fetch('https://www.cheapshark.com/api/1.0/deals?sortBy=savings&pageSize=12&onSale=1&upperPrice=60');
+    const deals = await res.json();
+    if (!deals || !deals.length) return;
+
+    const grid = document.getElementById('hot-deals-grid');
+    const sub = document.getElementById('hot-deals-sub');
+    if (!grid) return;
+
+    sub.textContent = `${deals.length} deals updated just now`;
+
+    grid.innerHTML = deals.slice(0, 8).map(deal => {
+      const savings = Math.round(parseFloat(deal.savings));
+      const price = parseFloat(deal.salePrice);
+      const original = parseFloat(deal.normalPrice);
+      const storeName = STORES[deal.storeID] || 'Store';
+      const imgHTML = deal.thumb
+        ? `<img class="hot-deal-img" src="${deal.thumb}" alt="${deal.title}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=hot-deal-img-placeholder>${deal.title.substring(0,3).toUpperCase()}</div>'" />`
+        : `<div class="hot-deal-img-placeholder">${deal.title.substring(0,3).toUpperCase()}</div>`;
+
+      return `
+        <a class="hot-deal-card" href="https://www.cheapshark.com/redirect?dealID=${deal.dealID}" target="_blank" rel="noopener noreferrer" title="${deal.title} — ${savings}% off at ${storeName}">
+          ${imgHTML}
+          <div class="hot-deal-info">
+            <div class="hot-deal-name">${deal.title}</div>
+            <div class="hot-deal-store">${storeName}</div>
+            <div class="hot-deal-prices">
+              <span class="hot-deal-price">${price === 0 ? 'FREE' : '$' + price.toFixed(2)}</span>
+              ${original > price ? `<span class="hot-deal-original">$${original.toFixed(2)}</span>` : ''}
+              <span class="hot-deal-badge">${savings}% OFF</span>
+            </div>
+          </div>
+        </a>
+      `;
+    }).join('');
+  } catch {
+    const wrap = document.getElementById('hot-deals-wrap');
+    if (wrap) wrap.style.display = 'none';
+  }
+}
+
 // Init
 updateWishlistCount();
+fetchHotDeals();
 </script>
 </body>
 </html>
