@@ -3,25 +3,63 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>PriceRaider — Find the Cheapest PC Game Prices</title>
+<title>PriceRaider — Find the Cheapest PC Game Prices Across Every Store</title>
 
-<!-- SEO -->
-<meta name="description" content="PriceRaider compares PC game prices across Steam, GOG, Fanatical, Humble Bundle and more to find you the best deal. Price history, sale predictions, and wishlist alerts." />
-<meta name="keywords" content="cheap PC games, game deals, Steam sale, game price comparison, cheapest game prices, PC game discounts" />
+<!-- SEO Core -->
+<meta name="description" content="PriceRaider compares PC game prices across Steam, GOG, Fanatical, Humble Bundle, Green Man Gaming and more. See price history, sale predictions, set price alerts, and find the best deal instantly." />
+<meta name="keywords" content="cheap PC games, game deals, Steam sale, game price comparison, cheapest game prices, PC game discounts, game price tracker, steam price history, game price alert, best game deals" />
 <meta name="author" content="PriceRaider" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://mgmero-commits.github.io/priceraider" />
 
-<!-- Open Graph (Discord, Facebook, Reddit previews) -->
+<!-- Open Graph -->
 <meta property="og:title" content="PriceRaider — Find the Cheapest PC Game Prices" />
 <meta property="og:description" content="Compare PC game prices across every store. Price history, sale predictions, and wishlist alerts — all in one place." />
 <meta property="og:image" content="https://i.imgur.com/1r2GwOU.png" />
 <meta property="og:url" content="https://mgmero-commits.github.io/priceraider" />
 <meta property="og:type" content="website" />
+<meta property="og:site_name" content="PriceRaider" />
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="PriceRaider — Find the Cheapest PC Game Prices" />
 <meta name="twitter:description" content="Compare PC game prices across every store. Price history, sale predictions, and wishlist alerts." />
 <meta name="twitter:image" content="https://i.imgur.com/1r2GwOU.png" />
+
+<!-- Structured Data (Schema.org) — tells Google exactly what this site is -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "PriceRaider",
+  "url": "https://mgmero-commits.github.io/priceraider",
+  "description": "PriceRaider compares PC game prices across Steam, GOG, Fanatical, Humble Bundle and more to find you the best deal. Includes price history, sale predictions, and wishlist price alerts.",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "featureList": [
+    "PC game price comparison",
+    "Price history charts",
+    "Sale predictions",
+    "Wishlist with price alerts",
+    "Multiple store comparison"
+  ]
+}
+</script>
+
+<!-- Performance: preconnect to external resources -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="preconnect" href="https://www.cheapshark.com" />
+<link rel="preconnect" href="https://i.imgur.com" />
+
+<!-- Favicon (using logo) -->
+<link rel="icon" type="image/png" href="https://i.imgur.com/1r2GwOU.png" />
+<link rel="apple-touch-icon" href="https://i.imgur.com/1r2GwOU.png" />
 
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
 <style>
@@ -62,7 +100,7 @@
     background: linear-gradient(135deg, #ffffff 30%, #7c6dff);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   }
-  .tagline { color: rgba(255,255,255,0.45); font-size: 14px; letter-spacing: 0.3px; }
+  .tagline { color: rgba(255,255,255,0.45); font-size: 14px; letter-spacing: 0.3px; font-weight: 400; }
 
   .search-row { display: flex; gap: 10px; margin-bottom: 12px; }
   .input-wrap { flex: 1; position: relative; }
@@ -505,28 +543,30 @@
 </head>
 <body>
 
-<div class="glow1"></div>
-<div class="glow2"></div>
+<div class="glow1" aria-hidden="true"></div>
+<div class="glow2" aria-hidden="true"></div>
 
-<div class="container">
-  <div class="header">
+<main class="container" role="main">
+  <header class="header">
     <div class="logo-row">
-      <img src="https://i.imgur.com/1r2GwOU.png" alt="PriceRaider" onclick="goHome()" style="height:220px;object-fit:contain;mix-blend-mode:lighten;cursor:pointer;" />
+      <img src="https://i.imgur.com/1r2GwOU.png" alt="PriceRaider - PC Game Price Comparison" onclick="goHome()" style="height:220px;object-fit:contain;mix-blend-mode:lighten;cursor:pointer;" />
     </div>
-    <p class="tagline">Find the cheapest price across every PC game store</p>
-    <div class="nav-tabs">
+    <h1 class="tagline">Find the cheapest price across every PC game store</h1>
+    <nav class="nav-tabs" aria-label="Main navigation">
       <button class="nav-tab active" id="tab-search" onclick="switchTab('search')">🔍 Search</button>
       <button class="nav-tab" id="tab-wishlist" onclick="switchTab('wishlist')">❤️ Wishlist <span id="wishlist-count" class="wl-count" style="display:none">0</span></button>
-    </div>
-  </div>
+    </nav>
+  </header>
 
+  <section aria-label="Game search">
   <div class="search-row">
     <div class="input-wrap">
-      <input id="search-input" type="text" placeholder="Search for a game..." autocomplete="off" />
-      <div id="suggestions-dropdown"></div>
+      <input id="search-input" type="text" placeholder="Search for a game..." autocomplete="off" aria-label="Search for a game" />
+      <div id="suggestions-dropdown" role="listbox" aria-label="Search suggestions"></div>
     </div>
-    <button id="search-btn" onclick="hideDropdown(); searchGames()">Search</button>
+    <button id="search-btn" onclick="hideDropdown(); searchGames()" aria-label="Search">Search</button>
   </div>
+  </section>
   <div id="inline-suggestion" style="display:none" class="inline-suggestion"></div>
   <div id="home-btn-wrap" style="display:none"></div>
 
@@ -569,13 +609,19 @@
     </div>
   </div>
 
-  <p class="footer">Powered by CheapShark · Prices update in real time</p>
-</div>
+  <footer class="footer">
+    <p>PC game price comparison across Steam, GOG, Fanatical, Humble Bundle &amp; more</p>
+    <p style="margin-top:4px;opacity:0.6;">Powered by CheapShark · Prices update in real time · <a href="https://mgmero-commits.github.io/priceraider" style="color:inherit;">PriceRaider.gg</a></p>
+  </footer>
+</main>
 
 <!-- Wishlist Section -->
 <div class="container" id="wishlist-section" style="display:none">
   <div id="wishlist-list"></div>
-  <p class="footer">Powered by CheapShark · Prices update in real time</p>
+  <footer class="footer">
+    <p>PC game price comparison across Steam, GOG, Fanatical, Humble Bundle &amp; more</p>
+    <p style="margin-top:4px;opacity:0.6;">Powered by CheapShark · Prices update in real time</p>
+  </footer>
 </div>
 
 <!-- Alert Modal -->
