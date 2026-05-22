@@ -321,6 +321,15 @@
   .hot-deal-skeleton { height: 160px; background: rgba(255,255,255,0.04); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); animation: pulse 1.5s ease-in-out infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 
+  .load-more-btn {
+    width: 100%; margin-top: 12px; padding: 12px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px; color: rgba(255,255,255,0.6);
+    font-size: 13px; font-weight: 700; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: background 0.15s;
+  }
+  .load-more-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
   @media (max-width: 600px) {
     .hot-deals-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
     .hot-deal-img { height: 65px; }
@@ -1979,12 +1988,15 @@ async function fetchHotDeals() {
 
     sub.textContent = `${deals.length} deals from Steam`;
 
-    grid.innerHTML = deals.map(item => {
+    // Store all deals globally for load more
+    window._steamDeals = deals;
+    window._steamDealsShown = 8;
+
+    const renderDealsGrid = (items) => items.map(item => {
       const price = (item.final_price / 100).toFixed(2);
       const original = (item.original_price / 100).toFixed(2);
       const savings = item.discount_percent;
       const img = item.header_image || item.small_capsule_image || '';
-
       return `
         <a class="hot-deal-card" href="https://store.steampowered.com/app/${item.id}" target="_blank" rel="noopener noreferrer" title="${item.name} — ${savings}% off on Steam">
           ${img ? `<img class="hot-deal-img" src="${img}" alt="${item.name}" loading="lazy" />` : `<div class="hot-deal-img-placeholder">${item.name.substring(0,3).toUpperCase()}</div>`}
@@ -1997,9 +2009,25 @@ async function fetchHotDeals() {
               <span class="hot-deal-badge">${savings}% OFF</span>
             </div>
           </div>
-        </a>
-      `;
+        </a>`;
     }).join('');
+
+    window.loadMoreDeals = () => {
+      window._steamDealsShown += 8;
+      const shown = window._steamDeals.slice(0, window._steamDealsShown);
+      grid.innerHTML = renderDealsGrid(shown);
+      if (window._steamDealsShown < window._steamDeals.length) {
+        grid.insertAdjacentHTML('afterend', `<button class="load-more-btn" onclick="loadMoreDeals()">View More Deals ↓</button>`);
+      } else {
+        const btn = document.querySelector('.load-more-btn');
+        if (btn) btn.remove();
+      }
+    };
+
+    grid.innerHTML = renderDealsGrid(deals.slice(0, 8));
+    if (deals.length > 8) {
+      grid.insertAdjacentHTML('afterend', `<button class="load-more-btn" onclick="loadMoreDeals()">View More Deals ↓</button>`);
+    }
 
   } catch {
     // Fallback to CheapShark popular games filter
