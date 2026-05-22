@@ -1968,17 +1968,19 @@ async function fetchHotDeals() {
     const res = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://store.steampowered.com/api/featuredcategories/?cc=us&l=en'));
     const data = await res.json();
 
-    // Pull from specials (featured discounts) and top sellers
+    // Pull from all available categories for more deals
     let items = [];
-    if (data.specials && data.specials.items) items = [...items, ...data.specials.items];
-    if (data.top_sellers && data.top_sellers.items) items = [...items, ...data.top_sellers.items];
+    const categories = ['specials', 'top_sellers', 'new_releases', 'coming_soon'];
+    for (const cat of categories) {
+      if (data[cat] && data[cat].items) items = [...items, ...data[cat].items];
+    }
 
-    // Filter to only discounted items
+    // Filter to only discounted items with at least 20% off and dedupe
     const deals = items
-      .filter(item => item.discount_percent > 0 && item.final_price > 0)
-      .filter((item, idx, self) => self.findIndex(i => i.id === item.id) === idx) // dedupe
+      .filter(item => item.discount_percent >= 20 && item.final_price > 0)
+      .filter((item, idx, self) => self.findIndex(i => i.id === item.id) === idx)
       .sort((a, b) => b.discount_percent - a.discount_percent)
-      .slice(0, 8);
+      .slice(0, 24);
 
     if (!deals.length) throw new Error('No deals');
 
@@ -2037,17 +2039,21 @@ async function fetchHotDeals() {
       if (!deals || !deals.length) throw new Error('No deals');
 
       const popularLower = POPULAR_GAMES.map(n => n.toLowerCase());
+
+      // Also include any games from live SteamSpy top 100
       const filtered = deals.filter(deal => {
         const savings = parseFloat(deal.savings);
         if (savings < 40) return false;
         const titleLower = deal.title.toLowerCase();
+        // Match against popular games list (our curated + live SteamSpy)
         return popularLower.some(p => {
-          const pWords = p.split(' ');
+          const pWords = p.split(' ').filter(w => w.length > 2);
+          if (pWords.length === 0) return false;
           return pWords.length >= 2
             ? titleLower.includes(pWords[0]) && titleLower.includes(pWords[1])
             : titleLower.includes(pWords[0]);
         });
-      });
+      }).sort((a, b) => parseFloat(b.savings) - parseFloat(a.savings));
 
       if (!filtered.length) {
         document.getElementById('hot-deals-wrap').style.display = 'none';
