@@ -2062,11 +2062,11 @@ async function fetchHotDeals() {
       const savings = item.discount_percent;
       const img = item.header_image || item.small_capsule_image || '';
       return `
-        <a class="hot-deal-card" href="https://store.steampowered.com/app/${item.id}" target="_blank" rel="noopener noreferrer" title="${item.name} — ${savings}% off on Steam">
+        <a class="hot-deal-card" href="#" onclick="event.preventDefault(); searchGames('${item.name.replace(/'/g,"\\'").replace(/"/g,'&quot;')}'); window.scrollTo({top:0,behavior:'smooth'});" title="${item.name} — ${savings}% off on Steam">
           ${img ? `<img class="hot-deal-img" src="${img}" alt="${item.name}" loading="lazy" />` : `<div class="hot-deal-img-placeholder">${item.name.substring(0,3).toUpperCase()}</div>`}
           <div class="hot-deal-info">
             <div class="hot-deal-name">${item.name}</div>
-            <div class="hot-deal-store">Steam</div>
+            <div class="hot-deal-store" style="color:#00e676;font-weight:600;">🔍 Compare prices</div>
             <div class="hot-deal-prices">
               <span class="hot-deal-price">$${price}</span>
               <span class="hot-deal-original">$${original}</span>
