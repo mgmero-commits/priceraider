@@ -1955,64 +1955,107 @@ function renderSalePredictions(game, allTimeLow, deals) {
 // ── Hot Deals Feed ────────────────────────────────────
 async function fetchHotDeals() {
   try {
-    // Fetch more deals so we have enough to filter from
-    const res = await fetch('https://www.cheapshark.com/api/1.0/deals?sortBy=savings&pageSize=60&onSale=1&upperPrice=80&lowerPrice=1');
-    const deals = await res.json();
-    if (!deals || !deals.length) return;
+    // Try Steam's featured deals endpoint via CORS proxy
+    const res = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://store.steampowered.com/api/featuredcategories/?cc=us&l=en'));
+    const data = await res.json();
 
-    // Only show deals for games in our popular list with at least 30% off
-    const popularLower = POPULAR_GAMES.map(n => n.toLowerCase());
-    const filtered = deals.filter(deal => {
-      const savings = parseFloat(deal.savings);
-      if (savings < 30) return false;
-      const titleLower = deal.title.toLowerCase();
-      return popularLower.some(p => {
-        const pWords = p.split(' ');
-        // Match if title contains at least the first meaningful word of a popular game
-        return pWords.length >= 2
-          ? titleLower.includes(pWords[0]) && titleLower.includes(pWords[1])
-          : titleLower.includes(pWords[0]);
-      });
-    });
+    // Pull from specials (featured discounts) and top sellers
+    let items = [];
+    if (data.specials && data.specials.items) items = [...items, ...data.specials.items];
+    if (data.top_sellers && data.top_sellers.items) items = [...items, ...data.top_sellers.items];
+
+    // Filter to only discounted items
+    const deals = items
+      .filter(item => item.discount_percent > 0 && item.final_price > 0)
+      .filter((item, idx, self) => self.findIndex(i => i.id === item.id) === idx) // dedupe
+      .sort((a, b) => b.discount_percent - a.discount_percent)
+      .slice(0, 8);
+
+    if (!deals.length) throw new Error('No deals');
 
     const grid = document.getElementById('hot-deals-grid');
     const sub = document.getElementById('hot-deals-sub');
     if (!grid) return;
 
-    if (filtered.length === 0) {
-      document.getElementById('hot-deals-wrap').style.display = 'none';
-      return;
-    }
+    sub.textContent = `${deals.length} deals from Steam`;
 
-    sub.textContent = `${filtered.length} deals on popular titles`;
-
-    grid.innerHTML = filtered.slice(0, 8).map(deal => {
-      const savings = Math.round(parseFloat(deal.savings));
-      const price = parseFloat(deal.salePrice);
-      const original = parseFloat(deal.normalPrice);
-      const storeName = STORES[deal.storeID] || 'Store';
-      const imgHTML = deal.thumb
-        ? `<img class="hot-deal-img" src="${deal.thumb}" alt="${deal.title}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=hot-deal-img-placeholder>${deal.title.substring(0,3).toUpperCase()}</div>'" />`
-        : `<div class="hot-deal-img-placeholder">${deal.title.substring(0,3).toUpperCase()}</div>`;
+    grid.innerHTML = deals.map(item => {
+      const price = (item.final_price / 100).toFixed(2);
+      const original = (item.original_price / 100).toFixed(2);
+      const savings = item.discount_percent;
+      const img = item.header_image || item.small_capsule_image || '';
 
       return `
-        <a class="hot-deal-card" href="https://www.cheapshark.com/redirect?dealID=${deal.dealID}" target="_blank" rel="noopener noreferrer" title="${deal.title} — ${savings}% off at ${storeName}">
-          ${imgHTML}
+        <a class="hot-deal-card" href="https://store.steampowered.com/app/${item.id}" target="_blank" rel="noopener noreferrer" title="${item.name} — ${savings}% off on Steam">
+          ${img ? `<img class="hot-deal-img" src="${img}" alt="${item.name}" loading="lazy" />` : `<div class="hot-deal-img-placeholder">${item.name.substring(0,3).toUpperCase()}</div>`}
           <div class="hot-deal-info">
-            <div class="hot-deal-name">${deal.title}</div>
-            <div class="hot-deal-store">${storeName}</div>
+            <div class="hot-deal-name">${item.name}</div>
+            <div class="hot-deal-store">Steam</div>
             <div class="hot-deal-prices">
-              <span class="hot-deal-price">${price === 0 ? 'FREE' : '$' + price.toFixed(2)}</span>
-              ${original > price ? `<span class="hot-deal-original">$${original.toFixed(2)}</span>` : ''}
+              <span class="hot-deal-price">$${price}</span>
+              <span class="hot-deal-original">$${original}</span>
               <span class="hot-deal-badge">${savings}% OFF</span>
             </div>
           </div>
         </a>
       `;
     }).join('');
+
   } catch {
-    const wrap = document.getElementById('hot-deals-wrap');
-    if (wrap) wrap.style.display = 'none';
+    // Fallback to CheapShark popular games filter
+    try {
+      const res = await fetch('https://www.cheapshark.com/api/1.0/deals?sortBy=savings&pageSize=60&onSale=1&upperPrice=80&lowerPrice=1');
+      const deals = await res.json();
+      if (!deals || !deals.length) throw new Error('No deals');
+
+      const popularLower = POPULAR_GAMES.map(n => n.toLowerCase());
+      const filtered = deals.filter(deal => {
+        const savings = parseFloat(deal.savings);
+        if (savings < 40) return false;
+        const titleLower = deal.title.toLowerCase();
+        return popularLower.some(p => {
+          const pWords = p.split(' ');
+          return pWords.length >= 2
+            ? titleLower.includes(pWords[0]) && titleLower.includes(pWords[1])
+            : titleLower.includes(pWords[0]);
+        });
+      });
+
+      if (!filtered.length) {
+        document.getElementById('hot-deals-wrap').style.display = 'none';
+        return;
+      }
+
+      const grid = document.getElementById('hot-deals-grid');
+      const sub = document.getElementById('hot-deals-sub');
+      sub.textContent = `${filtered.length} deals on popular titles`;
+
+      grid.innerHTML = filtered.slice(0, 8).map(deal => {
+        const savings = Math.round(parseFloat(deal.savings));
+        const price = parseFloat(deal.salePrice);
+        const original = parseFloat(deal.normalPrice);
+        const storeName = STORES[deal.storeID] || 'Store';
+        const imgHTML = deal.thumb
+          ? `<img class="hot-deal-img" src="${deal.thumb}" alt="${deal.title}" loading="lazy" />`
+          : `<div class="hot-deal-img-placeholder">${deal.title.substring(0,3).toUpperCase()}</div>`;
+        return `
+          <a class="hot-deal-card" href="https://www.cheapshark.com/redirect?dealID=${deal.dealID}" target="_blank" rel="noopener noreferrer">
+            ${imgHTML}
+            <div class="hot-deal-info">
+              <div class="hot-deal-name">${deal.title}</div>
+              <div class="hot-deal-store">${storeName}</div>
+              <div class="hot-deal-prices">
+                <span class="hot-deal-price">${price === 0 ? 'FREE' : '$' + price.toFixed(2)}</span>
+                ${original > price ? `<span class="hot-deal-original">$${original.toFixed(2)}</span>` : ''}
+                <span class="hot-deal-badge">${savings}% OFF</span>
+              </div>
+            </div>
+          </a>`;
+      }).join('');
+    } catch {
+      const wrap = document.getElementById('hot-deals-wrap');
+      if (wrap) wrap.style.display = 'none';
+    }
   }
 }
 
