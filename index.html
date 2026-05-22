@@ -1982,7 +1982,7 @@ async function fetchHotDeals() {
     // Filter: only games (not DLC/soundtrack/software), min reviews, no NSFW, at least 25% off
     const deals = items
       .filter(item => {
-        if (item.discount_percent < 20) return false;
+        if (item.discount_percent < 10) return false;
         if (item.final_price <= 0) return false;
         if (isNSFW(item.name)) return false;
         // Option 3: must be type 'game' not DLC/software/music
