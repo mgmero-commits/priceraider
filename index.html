@@ -259,10 +259,11 @@
   }
   .deal-row:hover { opacity: 0.85; }
   .store-tag {
+    display: flex; align-items: center; gap: 5px;
     font-size: 11px; font-weight: 700;
     padding: 4px 10px; border-radius: 6px;
     color: #fff; white-space: nowrap;
-    flex-shrink: 0; min-width: 90px; text-align: center;
+    flex-shrink: 0; min-width: 90px; justify-content: center;
   }
   .deal-meta { flex: 1; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .best-badge {
@@ -747,6 +748,33 @@ const STORE_COLORS = {
   "Steam":"#1b2838","Fanatical":"#e4202d","Humble Store":"#cc2929",
   "GOG":"#6b1fff","GreenManGaming":"#00a651","GamersGate":"#e87722"
 };
+
+const STORE_LOGOS = {
+  "Steam": "https://store.steampowered.com/favicon.ico",
+  "GOG": "https://www.gog.com/favicon.ico",
+  "Fanatical": "https://www.fanatical.com/favicon.ico",
+  "Humble Store": "https://www.humblebundle.com/favicon.ico",
+  "GreenManGaming": "https://www.greenmangaming.com/favicon.ico",
+  "GamersGate": "https://www.gamersgate.com/favicon.ico",
+  "Gamesplanet": "https://gamesplanet.com/favicon.ico",
+  "Indie Gala": "https://www.indiegala.com/favicon.ico",
+  "DLGamer": "https://www.dlgamer.com/favicon.ico",
+  "Voidu": "https://www.voidu.com/favicon.ico",
+  "2Game": "https://www.2game.com/favicon.ico",
+  "WinGameStore": "https://www.wingamestore.com/favicon.ico",
+  "Blizzard": "https://www.blizzard.com/favicon.ico",
+};
+
+function getStoreTag(name, color) {
+  const logo = STORE_LOGOS[name];
+  if (logo) {
+    return `<div class="store-tag" style="background:${color}">
+      <img src="${logo}" onerror="this.style.display='none'" style="width:14px;height:14px;object-fit:contain;border-radius:2px;flex-shrink:0;" />
+      ${name}
+    </div>`;
+  }
+  return `<div class="store-tag" style="background:${color}">${name}</div>`;
+}
 
 const getColor = (name) => STORE_COLORS[name] || "#2a2a3e";
 const fmt = (p) => parseFloat(p) === 0 ? "FREE" : `$${parseFloat(p).toFixed(2)}`;
@@ -1466,7 +1494,7 @@ function renderDeals(deals, allTimeLow) {
     a.style.borderColor = isBest ? 'rgba(0,230,118,0.3)' : 'rgba(255,255,255,0.07)';
 
     a.innerHTML = `
-      <div class="store-tag" style="background:${getColor(storeName)}">${storeName}</div>
+      ${getStoreTag(storeName, getColor(storeName))}
       <div class="deal-meta">${badgeHTML}</div>
       <div class="price-block">
         ${savings > 0 ? `<span class="strike-price">$${parseFloat(deal.retailPrice).toFixed(2)}</span>` : ''}
