@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mgmero-commits.github.io/priceraider/sitemap.xml
