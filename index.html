@@ -342,6 +342,21 @@
   .loading-text { color: rgba(255,255,255,0.4); text-align: center; font-size: 14px; padding: 20px 0; }
   .footer { text-align: center; font-size: 11px; color: rgba(255,255,255,0.2); margin-top: 48px; letter-spacing: 0.5px; }
 
+  .about-section {
+    margin-top: 48px; padding: 24px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px; text-align: center;
+  }
+  .about-title { font-size: 15px; font-weight: 700; margin-bottom: 10px; color: rgba(255,255,255,0.7); }
+  .about-text { font-size: 13px; color: rgba(255,255,255,0.35); line-height: 1.7; max-width: 520px; margin: 0 auto 16px; }
+  .about-tags { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .about-tag {
+    font-size: 11px; font-weight: 600;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px; padding: 5px 12px; color: rgba(255,255,255,0.4);
+  }
+
   #results-section, #deals-section { display: none; }
 
   .also-search { margin-top: 28px; }
@@ -664,6 +679,18 @@
       <div class="hot-deals-grid" id="hot-deals-grid">
         ${[...Array(6)].map(() => `<div class="hot-deal-skeleton"></div>`).join('')}
       </div>
+    </div>
+  </div>
+
+  <div class="about-section">
+    <h2 class="about-title">What is PriceRaider?</h2>
+    <p class="about-text">PriceRaider is a free PC game price comparison tool that searches Steam, GOG, Fanatical, Humble Bundle, Green Man Gaming, and more to find you the cheapest deal. See price history charts, get sale predictions based on Steam's schedule, set wishlist alerts, and never overpay for a game again.</p>
+    <div class="about-tags">
+      <span class="about-tag">💰 Price Comparison</span>
+      <span class="about-tag">📈 Price History</span>
+      <span class="about-tag">🔮 Sale Predictions</span>
+      <span class="about-tag">❤️ Wishlist Alerts</span>
+      <span class="about-tag">🆓 Always Free</span>
     </div>
   </div>
 
@@ -1338,9 +1365,14 @@ async function fetchDeals(game) {
         <div class="game-title">${game.external}</div>
         <div class="game-subtitle" id="best-price-line">Fetching best price...</div>
       </div>
-      <button id="wl-btn-${game.gameID}" class="wl-add-btn ${isWishlisted(game.gameID) ? 'wl-added' : ''}" onclick="toggleWishlist(${JSON.stringify(game).replace(/"/g,'&quot;')})">
-        ${isWishlisted(game.gameID) ? '❤️ Wishlisted' : '🤍 Wishlist'}
-      </button>
+      <div style="display:flex;gap:8px;flex-shrink:0;">
+        <button id="wl-btn-${game.gameID}" class="wl-add-btn ${isWishlisted(game.gameID) ? 'wl-added' : ''}" onclick="toggleWishlist(${JSON.stringify(game).replace(/"/g,'&quot;')})">
+          ${isWishlisted(game.gameID) ? '❤️ Wishlisted' : '🤍 Wishlist'}
+        </button>
+        <button class="wl-add-btn" onclick="shareGame('${game.external.replace(/'/g,"\\'")}', '${game.gameID}')" title="Share this game's deals">
+          🔗 Share
+        </button>
+      </div>
     </div>
   `;
   handleThumbErrors();
@@ -1554,6 +1586,21 @@ document.getElementById('search-input').addEventListener('input', (e) => {
     } catch { hideDropdown(); }
   }, 300);
 });
+function shareGame(name, gameID) {
+  const url = `${window.location.href.split('?')[0]}?game=${encodeURIComponent(name)}&id=${gameID}`;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = event.target;
+      const original = btn.innerHTML;
+      btn.innerHTML = '✅ Copied!';
+      btn.style.color = '#00e676';
+      setTimeout(() => { btn.innerHTML = original; btn.style.color = ''; }, 2000);
+    });
+  } else {
+    prompt('Copy this link:', url);
+  }
+}
+
 // ── Wishlist ──────────────────────────────────────────
 let currentTab = 'search';
 let modalGame = null;
@@ -2113,6 +2160,14 @@ async function fetchHotDeals() {
 // Init
 updateWishlistCount();
 fetchHotDeals();
+
+// Handle shared links — auto search if ?game= param present
+const urlParams = new URLSearchParams(window.location.search);
+const sharedGame = urlParams.get('game');
+if (sharedGame) {
+  document.getElementById('search-input').value = sharedGame;
+  searchGames(sharedGame);
+}
 </script>
 </body>
 </html>
