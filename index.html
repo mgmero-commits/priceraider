@@ -1975,9 +1975,13 @@ async function fetchHotDeals() {
       if (data[cat] && data[cat].items) items = [...items, ...data[cat].items];
     }
 
-    // Filter to only discounted items with at least 20% off and dedupe
+    // NSFW keyword filter
+    const nsfwKeywords = ['hentai','nsfw','adult','xxx','erotic','sexy','nude','porn','lewd','ecchi','18+','sexual'];
+    const isNSFW = (name) => nsfwKeywords.some(kw => name.toLowerCase().includes(kw));
+
+    // Filter to only discounted items with at least 20% off, dedupe, no NSFW
     const deals = items
-      .filter(item => item.discount_percent >= 20 && item.final_price > 0)
+      .filter(item => item.discount_percent >= 20 && item.final_price > 0 && !isNSFW(item.name))
       .filter((item, idx, self) => self.findIndex(i => i.id === item.id) === idx)
       .sort((a, b) => b.discount_percent - a.discount_percent)
       .slice(0, 24);
@@ -1992,7 +1996,7 @@ async function fetchHotDeals() {
 
     // Store all deals globally for load more
     window._steamDeals = deals;
-    window._steamDealsShown = 8;
+    window._steamDealsShown = 9;
 
     const renderDealsGrid = (items) => items.map(item => {
       const price = (item.final_price / 100).toFixed(2);
@@ -2015,19 +2019,21 @@ async function fetchHotDeals() {
     }).join('');
 
     window.loadMoreDeals = () => {
-      window._steamDealsShown += 8;
+      window._steamDealsShown += 9;
       const shown = window._steamDeals.slice(0, window._steamDealsShown);
       grid.innerHTML = renderDealsGrid(shown);
+      // Remove all existing buttons first
+      document.querySelectorAll('.load-more-btn').forEach(b => b.remove());
       if (window._steamDealsShown < window._steamDeals.length) {
         grid.insertAdjacentHTML('afterend', `<button class="load-more-btn" onclick="loadMoreDeals()">View More Deals ↓</button>`);
-      } else {
-        const btn = document.querySelector('.load-more-btn');
-        if (btn) btn.remove();
       }
     };
 
-    grid.innerHTML = renderDealsGrid(deals.slice(0, 8));
-    if (deals.length > 8) {
+    // Show first 9 (fills 3x3 grid perfectly)
+    grid.innerHTML = renderDealsGrid(deals.slice(0, 9));
+    // Remove any existing button before adding
+    document.querySelectorAll('.load-more-btn').forEach(b => b.remove());
+    if (deals.length > 9) {
       grid.insertAdjacentHTML('afterend', `<button class="load-more-btn" onclick="loadMoreDeals()">View More Deals ↓</button>`);
     }
 
