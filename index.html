@@ -1976,10 +1976,10 @@ async function fetchHotDeals() {
     }
 
     // NSFW keyword filter
-    const nsfwKeywords = ['hentai','nsfw','adult','xxx','erotic','sexy','nude','porn','lewd','ecchi','18+','sexual'];
+    const nsfwKeywords = ['hentai','nsfw','adult','xxx','erotic','sexy','nude','porn','lewd','ecchi','18+','sexual','waifu','milf','yuri','yaoi','oppai','ahegao','loli','shotacon','pantsu'];
     const isNSFW = (name) => nsfwKeywords.some(kw => name.toLowerCase().includes(kw));
 
-    // Filter: only games (not DLC/soundtrack/software), min reviews, no NSFW, at least 20% off
+    // Filter: only games (not DLC/soundtrack/software), min reviews, no NSFW, at least 25% off
     const deals = items
       .filter(item => {
         if (item.discount_percent < 20) return false;
