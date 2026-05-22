@@ -1586,6 +1586,30 @@ document.getElementById('search-input').addEventListener('input', (e) => {
     } catch { hideDropdown(); }
   }, 300);
 });
+async function goDirectToDeals(name, steamAppID) {
+  // Show loading state
+  document.getElementById('hints-section').style.display = 'none';
+  document.getElementById('search-input').value = name;
+  document.getElementById('home-btn-wrap').style.display = 'block';
+
+  // Search CheapShark for the game by title to get gameID
+  try {
+    const res = await fetch(`https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(name)}&limit=5`);
+    const data = await res.json();
+    if (data && data.length > 0) {
+      // Pick closest match
+      const match = data.find(g => g.external.toLowerCase() === name.toLowerCase()) || data[0];
+      lastResults = data;
+      await fetchDeals(match);
+    } else {
+      // Fallback to regular search if no match
+      searchGames(name);
+    }
+  } catch {
+    searchGames(name);
+  }
+}
+
 function shareGame(name, gameID) {
   const url = `${window.location.href.split('?')[0]}?game=${encodeURIComponent(name)}&id=${gameID}`;
   if (navigator.clipboard) {
@@ -2062,7 +2086,7 @@ async function fetchHotDeals() {
       const savings = item.discount_percent;
       const img = item.header_image || item.small_capsule_image || '';
       return `
-        <a class="hot-deal-card" href="#" onclick="event.preventDefault(); searchGames('${item.name.replace(/'/g,"\\'").replace(/"/g,'&quot;')}'); window.scrollTo({top:0,behavior:'smooth'});" title="${item.name} — ${savings}% off on Steam">
+        <a class="hot-deal-card" href="#" onclick="event.preventDefault(); goDirectToDeals('${item.name.replace(/'/g,"\\'").replace(/"/g,'&quot;')}', ${item.id}); window.scrollTo({top:0,behavior:'smooth'});" title="${item.name} — ${savings}% off">
           ${img ? `<img class="hot-deal-img" src="${img}" alt="${item.name}" loading="lazy" />` : `<div class="hot-deal-img-placeholder">${item.name.substring(0,3).toUpperCase()}</div>`}
           <div class="hot-deal-info">
             <div class="hot-deal-name">${item.name}</div>
