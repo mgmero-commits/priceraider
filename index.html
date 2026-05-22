@@ -1979,9 +1979,18 @@ async function fetchHotDeals() {
     const nsfwKeywords = ['hentai','nsfw','adult','xxx','erotic','sexy','nude','porn','lewd','ecchi','18+','sexual'];
     const isNSFW = (name) => nsfwKeywords.some(kw => name.toLowerCase().includes(kw));
 
-    // Filter to only discounted items with at least 20% off, dedupe, no NSFW
+    // Filter: only games (not DLC/soundtrack/software), min reviews, no NSFW, at least 20% off
     const deals = items
-      .filter(item => item.discount_percent >= 20 && item.final_price > 0 && !isNSFW(item.name))
+      .filter(item => {
+        if (item.discount_percent < 20) return false;
+        if (item.final_price <= 0) return false;
+        if (isNSFW(item.name)) return false;
+        // Option 3: must be type 'game' not DLC/software/music
+        if (item.type && item.type !== 'game') return false;
+        // Option 4: minimum review threshold — filters obscure and adult niche titles
+        if (item.reviews_total && item.reviews_total < 100) return false;
+        return true;
+      })
       .filter((item, idx, self) => self.findIndex(i => i.id === item.id) === idx)
       .sort((a, b) => b.discount_percent - a.discount_percent)
       .slice(0, 24);
