@@ -1615,26 +1615,30 @@ document.getElementById('search-input').addEventListener('input', (e) => {
   }, 300);
 });
 async function goDirectToDeals(name, steamAppID) {
-  // Show loading state
   document.getElementById('hints-section').style.display = 'none';
   document.getElementById('search-input').value = name;
   document.getElementById('home-btn-wrap').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  // Search CheapShark for the game by title to get gameID
   try {
     const res = await fetch(`https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(name)}&limit=5`);
     const data = await res.json();
+
     if (data && data.length > 0) {
-      // Pick closest match
+      // Found in CheapShark — show full price comparison
       const match = data.find(g => g.external.toLowerCase() === name.toLowerCase()) || data[0];
       lastResults = data;
       await fetchDeals(match);
     } else {
-      // Fallback to regular search if no match
-      searchGames(name);
+      // Not in CheapShark — go straight to Steam store page
+      window.open(`https://store.steampowered.com/app/${steamAppID}`, '_blank');
+      // Reset UI back to home
+      goHome();
     }
   } catch {
-    searchGames(name);
+    // On error fall back to Steam too
+    window.open(`https://store.steampowered.com/app/${steamAppID}`, '_blank');
+    goHome();
   }
 }
 
@@ -2104,7 +2108,6 @@ async function fetchHotDeals() {
 
     sub.textContent = `${deals.length} deals from Steam`;
 
-    // Store all deals globally for load more
     window._steamDeals = deals;
     window._steamDealsShown = 9;
 
