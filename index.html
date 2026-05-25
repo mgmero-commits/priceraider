@@ -324,6 +324,25 @@
   .hot-deal-skeleton { height: 160px; background: rgba(255,255,255,0.04); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); animation: pulse 1.5s ease-in-out infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 
+  /* Skeleton loader */
+  .skeleton-wrap { display: flex; flex-direction: column; gap: 8px; }
+  .skeleton-deal-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; border-radius: 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .skeleton-box {
+    background: rgba(255,255,255,0.08);
+    animation: shimmer 1.5s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  @keyframes shimmer {
+    0% { opacity: 0.4; }
+    50% { opacity: 0.8; }
+    100% { opacity: 0.4; }
+  }
+
   .load-more-btn {
     width: 100%; margin-top: 12px; padding: 12px;
     background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
@@ -1383,7 +1402,23 @@ function renderResults(games) {
 async function fetchDeals(game) {
   document.getElementById('results-section').style.display = 'none';
   document.getElementById('deals-section').style.display = 'block';
-  document.getElementById('deals-list').innerHTML = '<p class="loading-text">Loading deals...</p>';
+  document.getElementById('deals-list').innerHTML = `
+    <div class="skeleton-wrap">
+      ${[...Array(5)].map(() => `
+        <div class="skeleton-deal-row">
+          <div class="skeleton-box" style="width:90px;height:32px;border-radius:6px;"></div>
+          <div style="flex:1;display:flex;gap:6px;flex-wrap:wrap;">
+            <div class="skeleton-box" style="width:70px;height:18px;border-radius:4px;"></div>
+            <div class="skeleton-box" style="width:55px;height:18px;border-radius:4px;"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+            <div class="skeleton-box" style="width:40px;height:12px;border-radius:3px;"></div>
+            <div class="skeleton-box" style="width:60px;height:20px;border-radius:4px;"></div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
 
   // Render game header
   document.getElementById('game-header').innerHTML = `
